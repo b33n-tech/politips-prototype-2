@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0F172A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poli'Tips">
+<title>Poli'Tips — La politique pour tous</title>
+<link rel="manifest" id="manifest-placeholder">
+<script>
+const manifest = {
+  name: "Poli'Tips", short_name: "PoliTips",
+  description: "Rendre la politique accessible et engagée pour tous",
+  start_url: "./", display: "standalone",
+  background_color: "#0F172A", theme_color: "#0F172A", orientation: "portrait",
+  icons: [{ src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%230F172A' rx='40'/%3E%3Ctext x='96' y='130' font-size='100' text-anchor='middle'%3E💡%3C/text%3E%3C/svg%3E", sizes: "192x192", type: "image/svg+xml" }]
+};
+const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+document.getElementById('manifest-placeholder').href = URL.createObjectURL(manifestBlob);
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --navy: #0F172A; --navy-mid: #1E293B; --navy-light: #334155;
+    --coral: #FF5A5F; --coral-light: #FF8A8E; --coral-dark: #E04045;
+    --green-vote: #22C55E; --gold: #F59E0B;
+    --bg: #F8FAFC; --bg2: #F1F5F9; --card-bg: #FFFFFF;
+    --text-main: #0F172A; --text-muted: #64748B; --border: #E2E8F0;
+    --radius: 20px; --shadow: 0 4px 24px rgba(15,23,42,0.10);
+    --shadow-lg: 0 8px 40px rgba(15,23,42,0.18);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-main);
+    max-width: 430px; margin: 0 auto; min-height: 100vh; overflow-x: hidden; position: relative;
+  }
+  h1,h2,h3,.font-display { font-family: 'Syne', sans-serif; }
+
+  /* BOTTOM NAV */
+  #bottom-nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px; background: var(--navy);
+    display: flex; align-items: stretch; height: 70px; z-index: 100;
+    border-top: 1px solid var(--navy-light); box-shadow: 0 -4px 20px rgba(15,23,42,0.25);
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; cursor: pointer; transition: all .2s; color: #94A3B8; font-size: 9px;
+    font-weight: 600; letter-spacing: .4px; text-transform: uppercase; position: relative;
+  }
+  .nav-item.active { color: #fff; }
+  .nav-item .nav-icon { font-size: 20px; transition: transform .2s; }
+  .nav-item.active .nav-icon { transform: scale(1.15); }
+  .nav-item.hub { flex: 1.4; }
+  .nav-hub-btn {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--coral) 0%, #FF8A3D 100%);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+    margin-bottom: 2px; box-shadow: 0 4px 16px rgba(255,90,95,.45); transition: transform .2s, box-shadow .2s;
+  }
+  .nav-item.hub.active .nav-hub-btn { transform: scale(1.1); box-shadow: 0 6px 24px rgba(255,90,95,.6); }
+  .nav-dot { position: absolute; top: 10px; right: calc(50% - 18px); width: 8px; height: 8px; border-radius: 50%; background: var(--coral); display: none; }
+  .nav-dot.show { display: block; }
+
+  /* SCREENS */
+  .screen { display: none; flex-direction: column; min-height: calc(100vh - 70px); padding-bottom: 70px; }
+  .screen.active { display: flex; }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--navy); color: #fff; padding: 16px 20px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.5px; cursor: pointer; user-select: none; }
+  .topbar-logo span { color: var(--coral); }
+
+  /* SWIPE */
+  #swipe-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 16px 10px; gap: 20px; position: relative; overflow: hidden; }
+  .card-stack { position: relative; width: 100%; max-width: 360px; height: 460px; }
+  .swipe-card {
+    position: absolute; inset: 0; border-radius: 24px; display: flex; flex-direction: column;
+    box-shadow: var(--shadow-lg); overflow: hidden; cursor: grab;
+    transform-origin: bottom center; transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+    user-select: none; will-change: transform;
+  }
+  .swipe-card:active { cursor: grabbing; }
+  .swipe-card.card-back-1 { transform: scale(.96) translateY(8px); z-index: 1; }
+  .swipe-card.card-back-2 { transform: scale(.92) translateY(16px); z-index: 0; }
+  .swipe-card.card-top { z-index: 2; }
+  .swipe-card.swiping-left { transform: translateX(-140%) rotate(-22deg); opacity: 0; }
+  .swipe-card.swiping-right { transform: translateX(140%) rotate(22deg); opacity: 0; }
+  .swipe-card.swiping-up { transform: translateY(-140%); opacity: 0; }
+  .card-header { padding: 26px 24px 18px; }
+  .card-cat-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; padding: 5px 12px; border-radius: 50px; margin-bottom: 16px; }
+  .card-proposition { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; line-height: 1.3; color: var(--text-main); }
+  .card-body { padding: 0 24px 24px; flex: 1; }
+  .card-context { font-size: 13.5px; color: var(--text-muted); line-height: 1.6; }
+  .card-footer { padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); }
+  .card-icon-big { font-size: 64px; opacity: .12; position: absolute; right: 16px; top: 16px; }
+  .cat-ecologie { background: linear-gradient(145deg, #ECFDF5 0%, #D1FAE5 100%); }
+  .cat-economie { background: linear-gradient(145deg, #EFF6FF 0%, #DBEAFE 100%); }
+  .cat-defense { background: linear-gradient(145deg, #FFF1F2 0%, #FFE4E6 100%); }
+  .cat-sante { background: linear-gradient(145deg, #FFF7ED 0%, #FFEDD5 100%); }
+  .cat-ecologie .card-cat-badge { background: #D1FAE5; color: #065F46; }
+  .cat-economie .card-cat-badge { background: #DBEAFE; color: #1D4ED8; }
+  .cat-defense .card-cat-badge { background: #FFE4E6; color: #9F1239; }
+  .cat-sante .card-cat-badge { background: #FFEDD5; color: #92400E; }
+  .stamp-pour, .stamp-contre, .stamp-neutre {
+    position: absolute; top: 40px; font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800;
+    letter-spacing: 3px; padding: 8px 20px; border-radius: 8px; border-width: 4px; border-style: solid;
+    opacity: 0; transition: opacity .15s; pointer-events: none; z-index: 10;
+  }
+  .stamp-pour { left: 24px; color: #16A34A; border-color: #16A34A; transform: rotate(-15deg); }
+  .stamp-contre { right: 24px; color: var(--coral); border-color: var(--coral); transform: rotate(15deg); }
+  .stamp-neutre { left: 50%; transform: translateX(-50%) rotate(-5deg); color: #6B7280; border-color: #6B7280; }
+  .action-btns { display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%; max-width: 360px; }
+  .action-btn { border: none; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; transition: transform .2s, box-shadow .2s; -webkit-tap-highlight-color: transparent; }
+  .action-btn:active { transform: scale(.88) !important; }
+  .btn-back { width: 52px; height: 52px; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.12); color: var(--gold); font-size: 18px; }
+  .btn-contre { width: 60px; height: 60px; background: #FFF1F2; color: var(--coral); box-shadow: 0 4px 16px rgba(255,90,95,.2); }
+  .btn-neutre { width: 52px; height: 52px; background: #F8FAFC; box-shadow: 0 2px 12px rgba(0,0,0,.1); color: #94A3B8; }
+  .btn-pour { width: 60px; height: 60px; background: #F0FDF4; color: #16A34A; box-shadow: 0 4px 16px rgba(34,197,94,.2); }
+  .btn-pour:hover { transform: scale(1.1); background: #DCFCE7; }
+  .btn-contre:hover { transform: scale(1.1); background: #FFE4E6; }
+  .progress-dots { display: flex; gap: 5px; }
+  .pdot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: background .3s, width .3s; }
+  .pdot.active { width: 18px; border-radius: 3px; background: var(--coral); }
+  .pdot.done { background: var(--navy-light); }
+
+  /* DISCOVERY */
+  .sub-tabs { display: flex; padding: 12px 16px; gap: 8px; background: var(--bg); border-bottom: 1px solid var(--border); }
+  .sub-tab { flex: 1; text-align: center; padding: 9px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; color: var(--text-muted); background: var(--bg2); }
+  .sub-tab.active { background: var(--navy); color: #fff; }
+  .search-bar { margin: 12px 16px; position: relative; }
+  .search-bar input { width: 100%; padding: 12px 16px 12px 42px; border-radius: 12px; border: 1.5px solid var(--border); background: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text-main); outline: none; transition: border-color .2s; }
+  .search-bar input:focus { border-color: var(--navy); }
+  .search-bar .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 16px; }
+  .card-person, .card-parti { background: var(--card-bg); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; cursor: pointer; transition: transform .2s, box-shadow .2s; border: 1.5px solid var(--border); }
+  .card-person:active, .card-parti:active { transform: scale(.97); }
+  .card-person-img { width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--bg2); display: flex; align-items: center; justify-content: center; font-size: 52px; }
+  .card-person-info { padding: 10px 10px 12px; }
+  .card-person-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text-main); line-height: 1.2; }
+  .card-person-role { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .card-person-fav { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,.85); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; z-index: 5; }
+  .card-parti-logo { width: 100%; padding: 20px; display: flex; align-items: center; justify-content: center; font-size: 42px; }
+  .card-parti-info { padding: 8px 10px 12px; border-top: 1px solid var(--border); }
+  .card-parti-name { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; }
+  .card-parti-sigle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* DETAIL PANEL */
+  .detail-panel { position: fixed; inset: 0; background: var(--bg); z-index: 200; transform: translateX(100%); transition: transform .35s cubic-bezier(.4,0,.2,1); overflow-y: auto; max-width: 430px; left: 50%; margin-left: -215px; }
+  @media (max-width: 430px) { .detail-panel { left: 0; margin-left: 0; } }
+  .detail-panel.open { transform: translateX(0); }
+  .detail-hero { background: var(--navy); color: #fff; padding: 20px 20px 30px; position: relative; }
+  .detail-back { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 20px; }
+  .detail-avatar { width: 80px; height: 80px; border-radius: 20px; background: var(--navy-mid); display: flex; align-items: center; justify-content: center; font-size: 44px; margin-bottom: 14px; }
+  .detail-name { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; }
+  .detail-role { font-size: 14px; opacity: .75; margin-top: 4px; }
+  .detail-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.15); padding: 4px 10px; border-radius: 50px; margin-top: 10px; }
+  .detail-body { padding: 20px 20px 100px; }
+  .accordion { border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .accordion-header { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 600; font-size: 14px; background: #fff; }
+  .accordion-body { padding: 0 16px; max-height: 0; overflow: hidden; transition: max-height .3s, padding .3s; background: #fff; font-size: 13.5px; color: var(--text-muted); line-height: 1.7; }
+  .accordion-body.open { max-height: 600px; padding: 12px 16px 16px; }
+  .accordion-arrow { transition: transform .3s; color: var(--text-muted); }
+  .accordion-arrow.open { transform: rotate(180deg); }
+
+  /* NEWS SCREEN */
+  .news-list { padding: 8px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .news-card {
+    background: var(--card-bg); border-radius: 16px; padding: 16px;
+    box-shadow: var(--shadow); border: 1.5px solid var(--border); cursor: pointer;
+    transition: transform .2s, box-shadow .2s; position: relative; overflow: hidden;
+  }
+  .news-card:active { transform: scale(.98); }
+  .news-card.new-article { border-left: 3px solid var(--coral); }
+  .news-card.new-article::before { content: 'NOUVEAU'; position: absolute; top: 10px; right: 10px; background: var(--coral); color: #fff; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 50px; letter-spacing: .6px; }
+  .news-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .news-source-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 50px; background: var(--bg2); color: var(--text-muted); }
+  .news-parti-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 50px; letter-spacing: .4px; }
+  .news-date { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+  .news-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 6px; line-height: 1.3; }
+  .news-content { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .news-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+  .news-tag { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 50px; background: var(--bg2); color: var(--text-muted); border: 1px solid var(--border); }
+  .news-tag.matched { background: #EEF2FF; color: #4338CA; border-color: #C7D2FE; }
+
+  /* Filter bar */
+  .filter-bar { padding: 10px 16px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-chip { flex-shrink: 0; padding: 7px 14px; border-radius: 50px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; border: 1.5px solid var(--border); background: #fff; color: var(--text-muted); white-space: nowrap; }
+  .filter-chip.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+  /* Keyword filter row */
+  .keyword-bar { padding: 6px 16px 10px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; align-items: center; }
+  .keyword-bar::-webkit-scrollbar { display: none; }
+  .keyword-chip { flex-shrink: 0; padding: 5px 12px; border-radius: 50px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all .2s; border: 1.5px solid var(--border); background: #fff; color: var(--text-muted); letter-spacing: .2px; }
+  .keyword-chip.active { background: #4338CA; color: #fff; border-color: #4338CA; }
+  .keyword-label { font-size: 10px; font-weight: 800; color: var(--text-muted); letter-spacing: .8px; text-transform: uppercase; flex-shrink: 0; }
+
+  /* News stats bar */
+  .news-stats-bar {
+    margin: 0 16px 10px; background: var(--navy); border-radius: 12px; padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .news-stats-bar .stat { text-align: center; }
+  .news-stats-bar .stat-num { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: #fff; }
+  .news-stats-bar .stat-lbl { font-size: 10px; color: rgba(255,255,255,.5); letter-spacing: .4px; }
+  .news-stats-bar .divider-v { width: 1px; height: 30px; background: rgba(255,255,255,.15); }
+
+  /* RSS sync animation */
+  @keyframes rss-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(.95)} }
+  .rss-syncing { animation: rss-pulse .8s ease infinite; }
+  .rss-wave { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green-vote); margin-right: 6px; animation: rss-pulse .8s ease infinite; }
+
+  /* PROFILE */
+  .profile-section { padding: 16px; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
+  .profile-card { background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); border: 1.5px solid var(--border); }
+  .chart-container { position: relative; width: 100%; max-width: 220px; margin: 0 auto; }
+  .progress-bar-wrap { margin-bottom: 14px; }
+  .progress-bar-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; font-weight: 600; }
+  .progress-bar-track { height: 8px; background: var(--bg2); border-radius: 50px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 50px; transition: width 1s ease; }
+  .badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .badge-item { background: var(--bg2); border-radius: 12px; padding: 14px 10px; text-align: center; border: 1.5px solid var(--border); }
+  .badge-emoji { font-size: 28px; display: block; margin-bottom: 6px; }
+  .badge-name { font-size: 11px; font-weight: 700; color: var(--text-main); }
+  .badge-desc { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+  .badge-item.unlocked { background: linear-gradient(135deg, #FFF7ED, #FFEDD5); border-color: #FCD34D; }
+
+  /* FUTURE */
+  .future-hero { background: linear-gradient(155deg, var(--navy) 0%, #1E1B4B 100%); color: #fff; padding: 40px 20px; text-align: center; }
+  .future-item { background: var(--card-bg); border-radius: 16px; padding: 18px 16px; box-shadow: var(--shadow); border: 1.5px solid var(--border); display: flex; gap: 14px; align-items: flex-start; }
+  .future-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+
+  /* BACKOFFICE */
+  #backoffice { position: fixed; inset: 0; background: #fff; z-index: 500; transform: translateY(100%); transition: transform .35s cubic-bezier(.4,0,.2,1); overflow-y: auto; max-width: 430px; left: 50%; margin-left: -215px; }
+  @media (max-width: 430px) { #backoffice { left: 0; margin-left: 0; } }
+  #backoffice.open { transform: translateY(0); }
+  .bo-header { background: var(--navy); color: #fff; padding: 20px; display: flex; align-items: center; gap: 14px; }
+  .bo-tabs { display: flex; border-bottom: 2px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+  .bo-tabs::-webkit-scrollbar { display: none; }
+  .bo-tab { flex-shrink: 0; padding: 12px 14px; text-align: center; font-size: 12px; font-weight: 700; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap; }
+  .bo-tab.active { color: var(--navy); border-color: var(--navy); }
+  .bo-section { padding: 20px; display: none; }
+  .bo-section.active { display: block; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+  .form-input, .form-select, .form-textarea { width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid var(--border); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text-main); outline: none; transition: border-color .2s; background: #fff; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--navy); }
+  .form-textarea { min-height: 90px; resize: vertical; }
+  .stat-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .stat-bar { height: 8px; border-radius: 50px; background: var(--bg2); flex: 1; margin: 0 10px; overflow: hidden; }
+  .stat-bar-fill { height: 100%; border-radius: 50px; background: linear-gradient(90deg, var(--navy), var(--coral)); }
+
+  /* RSS SYNC BTN */
+  .btn-rss { background: linear-gradient(135deg, #0EA5E9, #0369A1); color: #fff; border: none; padding: 14px 20px; border-radius: 12px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; transition: all .2s; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .btn-rss:hover { opacity: .9; transform: translateY(-1px); }
+  .btn-rss:active { transform: scale(.97); }
+
+  /* SYNC LOG */
+  .sync-log { background: #0F172A; border-radius: 10px; padding: 12px 14px; font-family: monospace; font-size: 11px; color: #4ADE80; line-height: 1.8; margin-top: 12px; min-height: 80px; max-height: 200px; overflow-y: auto; }
+  .sync-log .log-err { color: #F87171; }
+  .sync-log .log-info { color: #94A3B8; }
+  .sync-log .log-ok { color: #4ADE80; }
+  .sync-log .log-warn { color: #FBBF24; }
+
+  /* DISCLAIMER */
+  #disclaimer { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; z-index: 1000; background: rgba(15,23,42,.97); color: #fff; padding: 0; transition: all .4s; }
+  .disclaimer-inner { padding: 16px 18px; display: flex; gap: 12px; align-items: flex-start; }
+  .disclaimer-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+  .disclaimer-text { font-size: 12px; line-height: 1.6; opacity: .85; flex: 1; }
+  .disclaimer-close { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; }
+
+  /* TOAST */
+  #toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--navy); color: #fff; padding: 12px 20px; border-radius: 50px; font-size: 13px; font-weight: 600; opacity: 0; transition: all .3s; z-index: 999; pointer-events: none; white-space: nowrap; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ONBOARDING */
+  #onboarding { position: fixed; inset: 0; background: var(--navy); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 24px; transition: opacity .5s; max-width: 430px; left: 50%; transform: translateX(-50%); }
+  #onboarding.hidden { opacity: 0; pointer-events: none; }
+
+  @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .7; } }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .animate-slide-up { animation: slideUp .5s ease both; }
+  .animate-float { animation: float 3s ease-in-out infinite; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 50px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 50px; font-size: 11px; font-weight: 700; }
+  .divider { height: 1px; background: var(--border); margin: 6px 0; }
+  .btn-primary { background: var(--navy); color: #fff; border: none; padding: 14px 28px; border-radius: 12px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; transition: all .2s; width: 100%; }
+  .btn-primary:hover { background: var(--navy-mid); }
+  .btn-coral { background: var(--coral); color: #fff; border: none; padding: 12px 24px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; transition: all .2s; }
+  .btn-coral:hover { background: var(--coral-dark); }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); padding: 11px 20px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--text-main); transition: all .2s; }
+  .text-coral { color: var(--coral); }
+  .text-navy { color: var(--navy); }
+
+  /* Article detail */
+  .article-detail { position: fixed; inset: 0; background: var(--bg); z-index: 300; transform: translateX(100%); transition: transform .35s cubic-bezier(.4,0,.2,1); overflow-y: auto; max-width: 430px; left: 50%; margin-left: -215px; }
+  @media (max-width: 430px) { .article-detail { left: 0; margin-left: 0; } }
+  .article-detail.open { transform: translateX(0); }
+  .article-detail-hero { background: var(--navy); color: #fff; padding: 20px 20px 28px; }
+  .article-body { padding: 20px 20px 100px; }
+  .article-body p { font-size: 14px; color: var(--text-main); line-height: 1.8; margin-bottom: 14px; }
+  .article-body blockquote { border-left: 3px solid var(--coral); padding: 10px 16px; background: var(--bg2); border-radius: 0 8px 8px 0; font-style: italic; color: var(--text-muted); font-size: 13.5px; line-height: 1.7; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING -->
+<div id="onboarding">
+  <div class="animate-float" style="font-size:72px;margin-bottom:20px;">💡</div>
+  <div style="font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:#fff;text-align:center;line-height:1.2;margin-bottom:12px;">Poli<span style="color:var(--coral)">'</span>Tips</div>
+  <div style="color:rgba(255,255,255,.65);font-size:15px;text-align:center;line-height:1.6;margin-bottom:40px;">Rendre la politique accessible<br>et engagée pour tous 🇫🇷</div>
+  <div style="display:flex;flex-direction:column;gap:10px;width:100%;margin-bottom:24px;">
+    <div style="background:rgba(255,255,255,.07);border-radius:12px;padding:16px;display:flex;gap:12px;align-items:center;">
+      <span style="font-size:24px;">👆</span>
+      <div><div style="color:#fff;font-weight:600;font-size:14px;">Swipe pour voter</div><div style="color:rgba(255,255,255,.55);font-size:12px;">Droite = Pour · Gauche = Contre</div></div>
+    </div>
+    <div style="background:rgba(255,255,255,.07);border-radius:12px;padding:16px;display:flex;gap:12px;align-items:center;">
+      <span style="font-size:24px;">📰</span>
+      <div><div style="color:#fff;font-weight:600;font-size:14px;">Flux RSS personnalisé</div><div style="color:rgba(255,255,255,.55);font-size:12px;">Actus filtrées selon tes favoris</div></div>
+    </div>
+    <div style="background:rgba(255,255,255,.07);border-radius:12px;padding:16px;display:flex;gap:12px;align-items:center;">
+      <span style="font-size:24px;">🔍</span>
+      <div><div style="color:#fff;font-weight:600;font-size:14px;">Explore politiciens & partis</div><div style="color:rgba(255,255,255,.55);font-size:12px;">Fiches détaillées sans jugement</div></div>
+    </div>
+  </div>
+  <button class="btn-primary" onclick="closeOnboarding()" style="font-size:16px;padding:16px;">C'est parti ! 🚀</button>
+  <div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:14px;text-align:center;">Une initiative de Mylène HEUDELOT & Inès BOILEAU</div>
+</div>
+
+<!-- DISCLAIMER -->
+<div id="disclaimer">
+  <div class="disclaimer-inner">
+    <span class="disclaimer-icon">🔒</span>
+    <div class="disclaimer-text"><strong>Prototype de test</strong> — Les résultats invitent à l'exercice de l'esprit critique. Aucune donnée politique nominative n'est collectée ou exploitée.</div>
+    <div class="disclaimer-close" onclick="document.getElementById('disclaimer').style.display='none'">✕</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- DETAIL PANEL (politiciens/partis) -->
+<div id="detail-panel" class="detail-panel">
+  <div id="detail-panel-content"></div>
+</div>
+
+<!-- ARTICLE DETAIL -->
+<div id="article-detail" class="article-detail">
+  <div id="article-detail-content"></div>
+</div>
+
+<!-- BACKOFFICE -->
+<div id="backoffice">
+  <div class="bo-header">
+    <div onclick="closeBackoffice()" style="cursor:pointer;font-size:20px;opacity:.7;">✕</div>
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;">Administration</div>
+      <div style="font-size:12px;opacity:.65;">Poli'Tips Backoffice</div>
+    </div>
+    <button class="btn-coral" onclick="resetDemo()" style="margin-left:auto;font-size:12px;padding:8px 14px;">🔄 Reset Démo</button>
+  </div>
+  <div class="bo-tabs">
+    <div class="bo-tab active" onclick="switchBOTab('stats')">📊 Stats</div>
+    <div class="bo-tab" onclick="switchBOTab('rss')">📡 Synchro RSS</div>
+    <div class="bo-tab" onclick="switchBOTab('propositions')">💡 Propositions</div>
+    <div class="bo-tab" onclick="switchBOTab('actualites')">📰 Actus manuelles</div>
+  </div>
+  <div id="bo-stats" class="bo-section active">
+    <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:16px;">Tendances globales</h3>
+    <div id="bo-stats-content"></div>
+  </div>
+  <div id="bo-rss" class="bo-section">
+    <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:4px;">Simulateur RSS</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">Simule une synchronisation avec les flux RSS de <strong>Le Monde</strong>, <strong>Vie-publique.fr</strong>, <strong>AFP</strong>, <strong>Libération</strong> et <strong>Le Figaro</strong>. Les articles scrappés sont filtrés automatiquement par pertinence politique.</p>
+    <div style="background:var(--bg2);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Sources configurées</div>
+      <div id="rss-sources-list"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Filtres mots-clés globaux</label>
+      <input class="form-input" id="rss-keywords-input" placeholder="ex: budget, retraite, immigration..." value="politique, assemblée, gouvernement, parlement, élection, parti, vote, réforme">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Séparés par des virgules. Seuls les articles contenant au moins un mot-clé seront conservés.</div>
+    </div>
+    <button class="btn-rss" id="btn-rss-sync" onclick="simulerSynchroRSS()">
+      <span>📡</span> Simuler la synchro RSS
+    </button>
+    <div id="sync-log" class="sync-log" style="display:none;"></div>
+    <div style="margin-top:16px;" id="rss-results-preview"></div>
+  </div>
+  <div id="bo-propositions" class="bo-section">
+    <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:16px;">Ajouter une proposition</h3>
+    <div class="form-group">
+      <label class="form-label">Intitulé de la proposition</label>
+      <input class="form-input" id="bo-prop-text" placeholder="Ex: Augmenter le SMIC à 1800€">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Catégorie</label>
+      <select class="form-select" id="bo-prop-cat">
+        <option value="Écologie">Écologie 🌿</option>
+        <option value="Économie">Économie 💰</option>
+        <option value="Défense">Défense 🛡️</option>
+        <option value="Santé">Santé ❤️</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contexte</label>
+      <textarea class="form-textarea" id="bo-prop-ctx" placeholder="Expliquez brièvement la proposition..."></textarea>
+    </div>
+    <button class="btn-primary" onclick="addProposition()">Ajouter la proposition</button>
+    <div style="margin-top:20px;">
+      <h4 style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:10px;">Propositions en base</h4>
+      <div id="bo-prop-list"></div>
+    </div>
+  </div>
+  <div id="bo-actualites" class="bo-section">
+    <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:16px;">Publier une actualité manuelle</h3>
+    <div class="form-group">
+      <label class="form-label">Titre</label>
+      <input class="form-input" id="bo-news-title" placeholder="Titre de l'actualité">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contenu court</label>
+      <textarea class="form-textarea" id="bo-news-content" placeholder="Résumé en 2-3 phrases..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Parti associé (optionnel)</label>
+      <select class="form-select" id="bo-news-parti">
+        <option value="">Aucun</option>
+        <option value="rn">RN</option>
+        <option value="lfi">LFI</option>
+        <option value="ps">PS</option>
+        <option value="renaissance">Renaissance</option>
+        <option value="lr">LR</option>
+        <option value="eelv">EELV</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tags (séparés par des virgules)</label>
+      <input class="form-input" id="bo-news-tags" placeholder="ex: budget, retraite, écologie">
+    </div>
+    <button class="btn-primary" onclick="addActualite()">Publier l'actualité</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none;">
+
+  <!-- SCREEN: HUB/SWIPE -->
+  <div id="screen-hub" class="screen active">
+    <div class="topbar">
+      <div class="topbar-logo" id="logo-btn">Poli<span>'</span>Tips</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div id="swipe-counter" style="font-size:12px;opacity:.7;">0 votes</div>
+        <div onclick="openBackoffice()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;">⚙️</div>
+      </div>
+    </div>
+    <div id="swipe-area">
+      <div class="progress-dots" id="progress-dots"></div>
+      <div class="card-stack" id="card-stack"></div>
+      <div class="action-btns">
+        <button class="action-btn btn-back" onclick="undoSwipe()" title="Annuler"><i class="fa-solid fa-rotate-left"></i></button>
+        <button class="action-btn btn-contre" onclick="doSwipe('contre')" title="Contre"><i class="fa-solid fa-xmark" style="font-size:26px;"></i></button>
+        <button class="action-btn btn-neutre" onclick="doSwipe('neutre')" title="Neutre"><i class="fa-solid fa-circle-question" style="font-size:20px;"></i></button>
+        <button class="action-btn btn-pour" onclick="doSwipe('pour')" title="Pour"><i class="fa-solid fa-check" style="font-size:24px;"></i></button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:6px;">Glisse ou utilise les boutons pour voter</div>
+    </div>
+  </div>
+
+  <!-- SCREEN: DÉCOUVERTE -->
+  <div id="screen-search" class="screen" style="flex-direction:column;">
+    <div class="topbar">
+      <div class="topbar-logo">Découverte</div>
+      <div id="fav-count" style="font-size:12px;opacity:.7;">❤️ 0 favoris</div>
+    </div>
+    <div class="sub-tabs">
+      <div class="sub-tab active" onclick="switchDiscoveryTab('politiciens')" id="tab-pol">👤 Politiciens</div>
+      <div class="sub-tab" onclick="switchDiscoveryTab('partis')" id="tab-par">🏛️ Partis</div>
+    </div>
+    <div class="search-bar">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text" id="search-input" placeholder="Cherchez..." oninput="filterDiscovery()">
+    </div>
+    <div id="discovery-content" style="overflow-y:auto;flex:1;padding-bottom:80px;"></div>
+  </div>
+
+  <!-- SCREEN: ACTUALITÉS -->
+  <div id="screen-news" class="screen" style="flex-direction:column;">
+    <div class="topbar">
+      <div class="topbar-logo">Actualités</div>
+      <div id="news-sync-indicator" style="font-size:12px;opacity:.7;display:flex;align-items:center;gap:4px;"></div>
+    </div>
+    <div class="filter-bar" id="news-filters">
+      <div class="filter-chip active" onclick="filterNews('tous',this)">Tous</div>
+      <div class="filter-chip" onclick="filterNews('favoris',this)">❤️ Mes Favoris</div>
+      <div class="filter-chip" onclick="filterNews('rn',this)">RN</div>
+      <div class="filter-chip" onclick="filterNews('lfi',this)">LFI</div>
+      <div class="filter-chip" onclick="filterNews('ps',this)">PS</div>
+      <div class="filter-chip" onclick="filterNews('renaissance',this)">Renaissance</div>
+      <div class="filter-chip" onclick="filterNews('lr',this)">LR</div>
+      <div class="filter-chip" onclick="filterNews('eelv',this)">EELV</div>
+    </div>
+    <div class="keyword-bar" id="keyword-bar">
+      <span class="keyword-label">Tags :</span>
+    </div>
+    <div id="news-stats-container"></div>
+    <div id="news-list" class="news-list" style="overflow-y:auto;flex:1;padding-bottom:80px;"></div>
+  </div>
+
+  <!-- SCREEN: PROFIL -->
+  <div id="screen-profile" class="screen" style="overflow-y:auto;">
+    <div class="topbar">
+      <div class="topbar-logo">Mon Profil</div>
+      <div style="font-size:12px;opacity:.7;" id="profile-swipe-count">0 votes</div>
+    </div>
+    <div style="padding-bottom:80px;" id="profile-content"></div>
+  </div>
+
+  <!-- SCREEN: FUTUR -->
+  <div id="screen-future" class="screen" style="overflow-y:auto;">
+    <div class="topbar"><div class="topbar-logo">✨ Futur</div></div>
+    <div style="padding-bottom:80px;">
+      <div class="future-hero">
+        <div style="font-size:48px;margin-bottom:16px;">🚀</div>
+        <h2 style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:10px;">La vision 2025-2026</h2>
+        <p style="opacity:.7;font-size:14px;line-height:1.7;">Voici ce qui arrive prochainement sur Poli'Tips. Reste connecté·e !</p>
+      </div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+        <div class="future-item"><div class="future-icon" style="background:#EEF2FF;">🗣️</div><div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px;">Forum communautaire</div><div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Débats structurés et respectueux entre citoyens sur les grandes propositions.</div></div></div>
+        <div class="future-item"><div class="future-icon" style="background:#F0FDF4;">🤖</div><div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px;">Assistant IA "PolitBot"</div><div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Pose tes questions sur la politique française à notre IA spécialisée, formée pour rester neutre.</div></div></div>
+        <div class="future-item"><div class="future-icon" style="background:#FFF7ED;">🗳️</div><div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px;">Simulateur d'élections</div><div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Simule des élections locales ou nationales et visualise l'impact de tes votes.</div></div></div>
+        <div class="future-item"><div class="future-icon" style="background:#FFF1F2;">📊</div><div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px;">Comparateur de programmes</div><div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Compare côte à côte les programmes électoraux des partis sur chaque thématique.</div></div></div>
+        <div class="future-item"><div class="future-icon" style="background:#F0F9FF;">🎓</div><div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px;">Cours interactifs "Civi+"</div><div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Apprends comment fonctionne la Ve République, le Parlement, les institutions… en 5 min.</div></div></div>
+        <div class="future-item"><div class="future-icon" style="background:#F5F3FF;">🔔</div><div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px;">Alertes personnalisées</div><div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Reçois des notifications sur les sujets et partis qui t'intéressent, filtrées par pertinence.</div></div></div>
+        <div class="future-item"><div class="future-icon" style="background:#ECFDF5;">📡</div><div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px;">Flux RSS réel (production)</div><div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Connexion directe aux flux officiels de l'AFP, du Monde et de Vie-publique.fr. Actualisation toutes les 15 minutes.</div></div></div>
+        <div style="background:linear-gradient(135deg,var(--navy),#1E1B4B);border-radius:16px;padding:20px;color:#fff;text-align:center;margin-top:8px;">
+          <div style="font-size:28px;margin-bottom:10px;">💌</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:17px;margin-bottom:6px;">Contact & Partenariats</div>
+          <div style="opacity:.75;font-size:13px;margin-bottom:14px;line-height:1.6;">Un projet porté avec passion par<br><strong>Mylène HEUDELOT</strong> & <strong>Inès BOILEAU</strong></div>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <a href="mailto:politips.contact@gmail.com" style="color:#fff;background:rgba(255,255,255,.15);padding:8px 16px;border-radius:50px;font-size:12px;font-weight:600;text-decoration:none;">✉️ politips.contact@gmail.com</a>
+            <a href="https://instagram.com/PoliTips___" target="_blank" style="color:#fff;background:rgba(255,90,95,.4);padding:8px 16px;border-radius:50px;font-size:12px;font-weight:600;text-decoration:none;">📸 @PoliTips___</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<nav id="bottom-nav">
+  <div class="nav-item" onclick="switchScreen('search')" id="nav-search"><i class="fa-solid fa-magnifying-glass nav-icon"></i><span>Découverte</span></div>
+  <div class="nav-item" onclick="switchScreen('news')" id="nav-news"><i class="fa-solid fa-newspaper nav-icon"></i><span>Actus</span><div class="nav-dot" id="nav-dot-news"></div></div>
+  <div class="nav-item hub active" onclick="switchScreen('hub')" id="nav-hub"><div class="nav-hub-btn">💡</div><span>Hub</span></div>
+  <div class="nav-item" onclick="switchScreen('profile')" id="nav-profile"><i class="fa-solid fa-chart-pie nav-icon"></i><span>Profil</span></div>
+  <div class="nav-item" onclick="switchScreen('future')" id="nav-future"><i class="fa-solid fa-star nav-icon"></i><span>Futur</span></div>
+</nav>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════════════
+
+const MOCK_PROPOSITIONS = [
+  { id:1, intitule:"Instaurer le service militaire obligatoire pour les jeunes adultes", categorie:"Défense", contexte:"Proposé pour renforcer la cohésion nationale et préparer la jeunesse à la défense du territoire. Le SNU en est une tentative partielle.", orientation_partis:{rn:1,lr:1,renaissance:0,ps:-1,lfi:-1,eelv:-1} },
+  { id:2, intitule:"Interdire les pesticides néonicotinoïdes d'ici 2026", categorie:"Écologie", contexte:"Ces insecticides sont accusés de décimer les populations d'abeilles et de contaminer les nappes phréatiques selon plusieurs études.", orientation_partis:{rn:-1,lr:-1,renaissance:0,ps:1,lfi:1,eelv:1} },
+  { id:3, intitule:"Instaurer un revenu universel de base à 900€/mois", categorie:"Économie", contexte:"Versé à tous les citoyens sans condition, il remplacerait certaines aides sociales existantes. Expérimenté en Finlande.", orientation_partis:{rn:-1,lr:-1,renaissance:-1,ps:1,lfi:1,eelv:1} },
+  { id:4, intitule:"Rendre les transports en commun gratuits dans toutes les métropoles", categorie:"Écologie", contexte:"Dunkerque a montré qu'une telle mesure augmente l'usage des transports de +85%. Mais qui finance ?", orientation_partis:{rn:0,lr:-1,renaissance:0,ps:1,lfi:1,eelv:1} },
+  { id:5, intitule:"Augmenter le budget de la Défense nationale à 3% du PIB", categorie:"Défense", contexte:"L'OTAN recommande 2% du PIB. Certains partis veulent aller plus loin face aux tensions géopolitiques mondiales.", orientation_partis:{rn:1,lr:1,renaissance:1,ps:0,lfi:-1,eelv:-1} },
+  { id:6, intitule:"Rembourser à 100% les soins dentaires et optiques", categorie:"Santé", contexte:"La réforme 100% santé a amorcé ce chantier. Aller plus loin coûterait ~3Mds€/an selon la Sécu.", orientation_partis:{rn:1,lr:0,renaissance:0,ps:1,lfi:1,eelv:1} },
+  { id:7, intitule:"Nationaliser EDF et rouvrir des centrales nucléaires", categorie:"Économie", contexte:"L'énergie nucléaire représente ~70% de l'électricité française. Relancer l'EPR 2 est au cœur du débat énergétique.", orientation_partis:{rn:1,lr:1,renaissance:1,ps:0,lfi:0,eelv:-1} },
+  { id:8, intitule:"Légaliser et encadrer le cannabis récréatif", categorie:"Santé", contexte:"Plusieurs pays européens ont légalisé. Un rapport Sénat estime un gain fiscal de 2-3Mds€/an pour la France.", orientation_partis:{rn:-1,lr:-1,renaissance:0,ps:0,lfi:1,eelv:1} },
+  { id:9, intitule:"Indexer toutes les pensions de retraite sur l'inflation", categorie:"Économie", contexte:"En 2023, la non-revalorisation complète a fait perdre du pouvoir d'achat à des millions de retraités.", orientation_partis:{rn:1,lr:0,renaissance:0,ps:1,lfi:1,eelv:0} },
+  { id:10, intitule:"Bannir la publicité pour les produits ultra-transformés aux enfants", categorie:"Santé", contexte:"L'OMS préconise cette mesure pour lutter contre l'obésité infantile qui touche 17% des enfants en France.", orientation_partis:{rn:0,lr:0,renaissance:0,ps:1,lfi:1,eelv:1} }
+];
+
+const MOCK_POLITICIENS = [
+  { id:1, nom:"Emmanuel Macron", poste:"Président de la République", parti_id:"renaissance", emoji:"🧑‍💼", biographie:"Né en 1977 à Amiens. Ancien banquier d'affaires chez Rothschild, ministre de l'Économie sous Hollande. Fonde En Marche! en 2016, élu Président en 2017 à 39 ans, réélu en 2022.", histoire:"Figure centrale du libéralisme progressiste français, Emmanuel Macron incarne une rupture avec les partis traditionnels. Son quinquennat a été marqué par la crise des Gilets Jaunes, le COVID-19 et la réforme des retraites.", lois_votees:"Loi Travail 2017, Réforme retraites 2023, Plan France 2030, Loi Pouvoir d'achat 2022", keywords:["macron","renaissance","président","elysée","en marche"] },
+  { id:2, nom:"Marine Le Pen", poste:"Présidente du groupe RN à l'AN", parti_id:"rn", emoji:"👩‍⚖️", biographie:"Née en 1968, avocate de formation. Fille de Jean-Marie Le Pen. Prend la présidence du FN en 2011, le renomme RN en 2018.", histoire:"Marine Le Pen a profondément transformé l'image du Rassemblement National. Elle est arrivée 2e de la présidentielle 2022 avec 41% au second tour.", lois_votees:"Groupe d'opposition, nombreuses propositions sur la préférence nationale et le référendum d'initiative citoyenne", keywords:["le pen","rn","rassemblement national","immigration","souveraineté"] },
+  { id:3, nom:"Jean-Luc Mélenchon", poste:"Fondateur de LFI", parti_id:"lfi", emoji:"✊", biographie:"Né en 1951, professeur de lettres. Ancien ministre sous Jospin. Fonde le PG en 2008 puis LFI en 2016.", histoire:"Figure de la gauche radicale, Mélenchon a fédéré NUPES en 2022. Son mouvement LFI est le premier parti d'opposition à l'Assemblée.", lois_votees:"Propositions : Retraite à 60 ans, SMIC 1600€, Planification écologique, 6ème République", keywords:["mélenchon","lfi","insoumis","gauche","nupes","planification"] },
+  { id:4, nom:"François Bayrou", poste:"Premier ministre", parti_id:"renaissance", emoji:"🧓", biographie:"Né en 1951, professeur. Fondateur du MoDem. 3 fois candidat à la présidentielle. Nommé Premier ministre en décembre 2024.", histoire:"Allié central de Macron depuis 2017, Bayrou représente le centre modéré.", lois_votees:"Loi Fillon 2002 (éducation), soutien aux grandes réformes du macronisme", keywords:["bayrou","modem","premier ministre","matignon","centre"] },
+  { id:5, nom:"Édouard Philippe", poste:"Maire du Havre / Président Horizons", parti_id:"lr", emoji:"🏛️", biographie:"Né en 1970, énarque et avocat. Maire du Havre depuis 2010. Premier ministre de 2017 à 2020. Fonde Horizons en 2021.", histoire:"Issu de LR, il a rejoint la majorité présidentielle. Souvent cité comme candidat à la présidentielle.", lois_votees:"Réforme retraites 2019, Plan de relance COVID, PLFSS annuels", keywords:["philippe","horizons","havre","droite","premier ministre"] },
+  { id:6, nom:"Raphaël Glucksmann", poste:"Député européen / Secrétaire général PS", parti_id:"ps", emoji:"🌹", biographie:"Né en 1979, fils de l'écrivain André Glucksmann. Essayiste, journaliste. Élu au Parlement européen en 2019 et 2024.", histoire:"Glucksmann a relancé le PS en le menant en tête aux européennes 2024 (14%).", lois_votees:"Rapports parlementaires sur les crimes du génocide chinois des Ouïghours, loi anti-esclavage moderne", keywords:["glucksmann","ps","socialiste","europe","social-démocratie"] }
+];
+
+const MOCK_PARTIS = [
+  { id:"renaissance", nom:"Renaissance", sigle:"RE", emoji:"🔵", description:"Parti libéral-progressiste fondé en 2016 par Emmanuel Macron.", couleur:"#3B82F6", histoire:"Né de la fusion d'En Marche! et de partis centristes, Renaissance a remporté les présidentielles de 2017 et 2022.", lois_votees:"Réforme retraites 2023, Loi plein emploi, Plan France 2030", keywords:["renaissance","macron","en marche","modem","majorité","gouvernement","matignon","elysée","bayrou","réforme","budget","plein emploi"] },
+  { id:"rn", nom:"Rassemblement National", sigle:"RN", emoji:"🔵", description:"Parti nationaliste et souverainiste, 1er parti en France en voix.", couleur:"#1D4ED8", histoire:"Historiquement marginal, le RN est devenu le premier parti en nombre de voix aux législatives 2024.", lois_votees:"Groupe d'opposition, propositions sur l'immigration, le référendum RIC", keywords:["rn","le pen","bardella","immigration","rassemblement national","frontières","souveraineté","préférence nationale","euro","sécurité"] },
+  { id:"lfi", nom:"La France Insoumise", sigle:"LFI", emoji:"🔴", description:"Parti de gauche radicale fondé par Jean-Luc Mélenchon en 2016.", couleur:"#EF4444", histoire:"LFI a fédéré la gauche dans la NUPES en 2022, devenant le 1er parti d'opposition avec 73 élus.", lois_votees:"Propositions non adoptées : retraite 60 ans, SMIC 1600€, taxation des super-profits", keywords:["lfi","mélenchon","insoumis","nupes","nfp","gauche","planification","écologie","smic","retraites","super-profits","palestine"] },
+  { id:"ps", nom:"Parti Socialiste", sigle:"PS", emoji:"🌹", description:"Parti social-démocrate historique en reconstruction.", couleur:"#F472B6", histoire:"Après son effondrement historique de 2017 (6%), le PS a retrouvé des couleurs aux européennes 2024 sous Glucksmann.", lois_votees:"Mariage pour tous (2013), 35h (2000), Abolition peine de mort (1981)", keywords:["ps","socialiste","glucksmann","parti socialiste","social","gauche","services publics","logement","santé","travail"] },
+  { id:"lr", nom:"Les Républicains", sigle:"LR", emoji:"🔷", description:"Parti gaulliste et conservateur, en crise d'identité depuis 2017.", couleur:"#1E40AF", histoire:"Affaiblis par l'émergence de Renaissance, LR reste un acteur institutionnel important.", lois_votees:"Loi Sarkozy sécurité 2007, RGPD (Lemaire), Loi immigration 2023", keywords:["lr","républicains","wauquiez","droite","conservateur","gaulliste","retailleau","sécurité","immigration","identité"] },
+  { id:"eelv", nom:"Europe Écologie Les Verts", sigle:"EELV", emoji:"🟢", description:"Parti écologiste défendant la transition énergétique et la sortie du nucléaire.", couleur:"#16A34A", histoire:"Les Verts maintiennent une présence institutionnelle notable après l'intégration à la NUPES.", lois_votees:"Propositions : sortie nucléaire 2035, taxe carbone, revenu écologique", keywords:["eelv","verts","écologie","jadot","glucksmann","transition","nucléaire","biodiversité","climat","environnement","energie","renouvelable"] }
+];
+
+// ══════════════════════════════════════════════════════
+//  BASE D'ARTICLES RSS SIMULÉS (volume important)
+// ══════════════════════════════════════════════════════
+
+const RSS_ARTICLES_BASE = [
+  // === LE MONDE ===
+  { id:1001, titre:"Budget 2025 : le gouvernement Bayrou face au mur de la dette", source:"Le Monde", source_type:"lemonde", parti_id:"renaissance", date:"2025-01-20", tags:["budget","bayrou","dette","économie"], summary:"Le Premier ministre présente un budget d'austérité avec 45 milliards d'économies demandées aux ménages et aux entreprises. Opposition vive des syndicats et des partis de gauche.", corps:"<p>François Bayrou a présenté ce mardi à l'Assemblée nationale un projet de loi de finances pour 2025 qui prévoit des économies inédites depuis la crise de 2010. Avec 45 milliards d'euros de coupes budgétaires répartis sur deux ans, le Premier ministre entend ramener le déficit à 3% du PIB d'ici 2027.</p><p>Les syndicats ont immédiatement appelé à une journée de mobilisation nationale le 4 février. La CGT parle d'un budget «  antisocial  » qui «  fait payer les travailleurs pour les erreurs des élites  ».</p><blockquote>«  Ce budget est un choix de responsabilité. La France ne peut pas continuer à vivre à crédit.  » — François Bayrou, conférence de presse</blockquote><p>Du côté de l'opposition, Jean-Luc Mélenchon a qualifié le texte de «  budget de la misère  », quand Marine Le Pen a estimé que le gouvernement «  punissait les Français sans s'attaquer aux véritables sources de gaspillage  ».</p>", is_new:true },
+  { id:1002, titre:"Réforme des retraites : Mélenchon appelle à une grève générale illimitée", source:"Le Monde", source_type:"lemonde", parti_id:"lfi", date:"2025-01-19", tags:["retraites","mélenchon","grève","lfi"], summary:"Le leader de LFI exhorte les syndicats à lancer un mouvement reconductible contre le report de l'âge légal de départ à la retraite à 65 ans prévu dans le PLF 2025.", corps:"<p>«  Il n'y a qu'une réponse possible à ce gouvernement : la grève générale.  » En quelques mots, Jean-Luc Mélenchon a lancé jeudi un appel solennel à la mobilisation depuis la place de la Bastille, devant plusieurs milliers de sympathisants de La France Insoumise.</p><p>Le mouvement se structure autour du collectif «  Non à 65 ans  », qui regroupe désormais plus de 200 organisations syndicales, associatives et politiques. Une coordination nationale est prévue le 28 janvier à Paris.</p><blockquote>«  Chaque jour de travail après 60 ans est un jour volé à votre vie, à votre famille, à votre dignité.  » — Jean-Luc Mélenchon</blockquote><p>Les sondages indiquent que 68% des Français sont opposés à la retraite à 65 ans selon un sondage BVA publié hier.</p>", is_new:true },
+  { id:1003, titre:"Marine Le Pen : «  La préférence nationale doit s'appliquer au logement social  »", source:"Le Monde", source_type:"lemonde", parti_id:"rn", date:"2025-01-18", tags:["le pen","rn","logement","immigration"], summary:"La présidente du groupe RN à l'Assemblée réclame que les HLM soient réservés en priorité aux citoyens français, lors d'un discours au congrès des maires.", corps:"<p>Invitée au congrès des maires de France, Marine Le Pen a développé sa vision du logement social autour du concept de préférence nationale, déjà centrale dans le programme de son parti.</p><p>«  Un maire ne devrait jamais avoir à loger un étranger en situation irrégulière avant un Français qui attend depuis dix ans  », a-t-elle déclaré sous les applaudissements d'une partie de la salle.</p><p>Cette position, jugée inconstitutionnelle par plusieurs juristes, a immédiatement suscité des réactions : la ministre du Logement a rappelé que le droit au logement est universel en France.</p>", is_new:false },
+  { id:1004, titre:"Glucksmann au Parlement européen : une loi pour criminaliser l'écocide", source:"Le Monde", source_type:"lemonde", parti_id:"ps", date:"2025-01-17", tags:["glucksmann","europe","écocide","environnement"], summary:"Le député européen PS porte une proposition de directive visant à qualifier l'écocide de crime international, soutenue par 14 pays membres.", corps:"<p>Raphaël Glucksmann a présenté mardi au Parlement européen une proposition de directive visant à inscrire l'écocide dans le droit pénal européen. Ce texte, cosigné par 14 délégations nationales, prévoit des peines allant jusqu'à 15 ans d'emprisonnement pour les dirigeants d'entreprises responsables de destructions environnementales massives.</p><blockquote>«  TotalEnergies sait depuis 1971 que son activité détruit la planète. Il est temps que cette science se traduise en responsabilité pénale.  »</blockquote>", is_new:false },
+  { id:1005, titre:"EELV propose un «  bouclier vert  » pour les plus défavorisés", source:"Le Monde", source_type:"lemonde", parti_id:"eelv", date:"2025-01-16", tags:["eelv","transition","précarité","écologie"], summary:"Les écologistes défendent une aide mensuelle de 150€ pour les ménages modestes afin de financer leur transition vers une consommation plus durable.", corps:"<p>Sandrine Rousseau et Marine Tondelier ont présenté conjointement le plan «  Vert et Juste  » d'EELV, qui articule urgence climatique et justice sociale. Le cœur du dispositif est un chèque vert mensuel de 150€, conditionné à l'achat de produits locaux, biologiques ou à la rénovation énergétique.</p>", is_new:false },
+  { id:1006, titre:"LR vote contre la loi immigration : «  pas assez ferme  »", source:"Le Monde", source_type:"lemonde", parti_id:"lr", date:"2025-01-15", tags:["lr","immigration","loi","frontières"], summary:"Les Républicains ont rejeté le texte gouvernemental jugé insuffisant face à l'immigration clandestine, et défendent leur propre texte plus restrictif.", corps:"<p>Laurent Wauquiez a conduit le groupe LR à l'Assemblée dans un vote «  contre  » la loi immigration portée par le gouvernement Bayrou, au motif qu'elle ne va «  pas assez loin  » sur la question des expulsions et du droit du sol.</p><p>«  Cette loi est un cache-misère  », a tranché Wauquiez lors des débats, avant de présenter 12 amendements refusés par la majorité.</p>", is_new:false },
+
+  // === VIE PUBLIQUE ===
+  { id:2001, titre:"Projet de loi de finances 2025 : les grandes lignes du texte", source:"Vie-publique.fr", source_type:"viepublique", parti_id:"renaissance", date:"2025-01-20", tags:["budget","plf","finances","état"], summary:"Le texte budgétaire 2025 comprend notamment une hausse de la TVA sur les billets d'avion, une taxe exceptionnelle sur les rachats d'actions et une réforme de l'impôt sur la fortune immobilière.", corps:"<p>Le projet de loi de finances pour 2025, présenté en Conseil des ministres, table sur une croissance de 0,9% du PIB et prévoit de ramener le déficit sous les 3,5% dès cette année.</p><p>Parmi les mesures phares :</p><p>• Hausse de 150% de la taxe de solidarité sur les billets d'avion (classe affaires)<br>• Taxe de 5% sur les rachats d'actions des sociétés du CAC 40<br>• Révision du calcul de l'IFI<br>• Réduction de 8% des crédits des ministères non régaliens</p>", is_new:true },
+  { id:2002, titre:"Réforme constitutionnelle : l'environnement inscrit dans la loi fondamentale ?", source:"Vie-publique.fr", source_type:"viepublique", parti_id:null, date:"2025-01-19", tags:["constitution","environnement","réforme","parlement"], summary:"Un groupe de travail transpartisan planche sur une révision de la Constitution pour renforcer la portée juridique des obligations environnementales de l'État.", corps:"<p>Depuis le rejet de la révision constitutionnelle de 2021, la question de l'inscription de la lutte contre le changement climatique dans la Loi fondamentale reste ouverte. Un groupe de 30 parlementaires issus de six groupes politiques relance le débat.</p><p>La proposition prévoit d'inscrire à l'article 1er la formule : «  La République garantit la préservation de la biodiversité, de l'environnement et lutte contre le dérèglement climatique.  »</p>", is_new:false },
+  { id:2003, titre:"Dissolution du groupe LFI à l'Assemblée : quelles conséquences juridiques ?", source:"Vie-publique.fr", source_type:"viepublique", parti_id:"lfi", date:"2025-01-18", tags:["lfi","assemblée","groupe parlementaire","droit"], summary:"Suite aux dissensions internes, plusieurs questions se posent sur le statut juridique des frondeurs de LFI et leur accès aux financements publics.", corps:"<p>Depuis la scission interne à LFI en octobre 2024, deux groupes se disputent l'appellation officielle et les ressources budgétaires associées. Vie-publique.fr fait le point sur les règles qui régissent la constitution et le financement des groupes parlementaires.</p>", is_new:false },
+  { id:2004, titre:"Déontologie : le code de conduite des parlementaires renforcé", source:"Vie-publique.fr", source_type:"viepublique", parti_id:null, date:"2025-01-17", tags:["déontologie","parlement","corruption","transparence"], summary:"La Haute autorité pour la transparence de la vie publique publie de nouvelles recommandations sur les conflits d'intérêts et le financement des campagnes.", corps:"<p>La HATVP a rendu public son rapport annuel, pointant 47 cas d'insuffisance dans les déclarations de patrimoine des élus pour 2024. Un renforcement des sanctions est préconisé.</p>", is_new:false },
+  { id:2005, titre:"Les institutions de la Ve République : bilan et perspectives", source:"Vie-publique.fr", source_type:"viepublique", parti_id:null, date:"2025-01-16", tags:["institutions","ve république","constitution","démocratie"], summary:"À l'heure où plusieurs partis défendent une VIe République, ce dossier de fond retrace l'évolution des institutions françaises depuis 1958.", corps:"<p>En 1958, la Ve République naît d'une double crise : la paralysie de la IVe République et la guerre d'Algérie. De Gaulle impose un régime présidentiel fort, avec un exécutif dominant et un Parlement affaibli.</p><p>Depuis, pas moins de 24 révisions constitutionnelles ont été adoptées, dont l'instauration du quinquennat en 2000 et la réforme de 2008.</p>", is_new:false },
+  { id:2006, titre:"Services publics : le point sur les fermetures de trésoreries en milieu rural", source:"Vie-publique.fr", source_type:"viepublique", parti_id:null, date:"2025-01-15", tags:["services publics","ruralité","désertification","territoire"], summary:"Entre 2017 et 2024, 1 200 points d'accueil aux services de l'État ont fermé en zone rurale. Un rapport parlementaire alerte sur les conséquences.", corps:"<p>La «  désertification des services publics  » n'est pas un mythe : selon le rapport Descoeur-Tabarot, 34% des communes rurales ont perdu au moins un service public en sept ans.</p>", is_new:false },
+  { id:2007, titre:"Élection présidentielle 2027 : le calendrier officiel publié", source:"Vie-publique.fr", source_type:"viepublique", parti_id:null, date:"2025-01-14", tags:["présidentielle","2027","élection","calendrier"], summary:"Le Conseil constitutionnel a arrêté les dates officielles : premier tour le 11 avril 2027, second tour le 25 avril 2027.", corps:"<p>Le Conseil constitutionnel a officiellement fixé le calendrier de la prochaine élection présidentielle. Le premier tour se tiendra le dimanche 11 avril 2027, le second tour le 25 avril 2027.</p><p>La campagne officielle débutera le 27 mars 2027. La période de recueil des 500 signatures s'ouvrira le 4 mars.</p>", is_new:true },
+
+  // === AFP ===
+  { id:3001, titre:"AFP — Bayrou maintient la cap sur le budget malgré les 49-3 de l'opposition", source:"AFP", source_type:"afp", parti_id:"renaissance", date:"2025-01-20", tags:["bayrou","budget","assemblée","49-3"], summary:"Le Premier ministre a recours à l'article 49-3 pour faire passer la première partie du PLF 2025, face à une coalition hétéroclite regroupant LFI, RN et une partie de LR.", corps:"<p>C'est la troisième fois en moins de six mois qu'un Premier ministre utilise l'article 49-3. François Bayrou a engagé la responsabilité du gouvernement sur le vote de la première partie du budget 2025, après l'échec d'un vote à l'Assemblée nationale mercredi soir.</p><p>Une motion de censure déposée par LFI et soutenue par le RN pourrait faire chuter le gouvernement si une majorité absolue de 289 voix se coalise.</p>", is_new:true },
+  { id:3002, titre:"AFP — Présidentielle 2027 : Bardella confirme sa candidature pour le RN", source:"AFP", source_type:"afp", parti_id:"rn", date:"2025-01-19", tags:["bardella","rn","présidentielle","2027"], summary:"Le président du Rassemblement National officialise sa candidature à l'élection présidentielle de 2027 lors d'un meeting à Villepinte.", corps:"<p>Jordan Bardella a officialisé dimanche sa candidature à la présidentielle de 2027 devant 20 000 sympathisants à Villepinte. «  Je serai le candidat du peuple français qui veut retrouver sa fierté et sa sécurité  », a-t-il déclaré sous une ovation.</p><p>Marine Le Pen, condamnée dans l'affaire des assistants parlementaires européens, ne peut se présenter jusqu'à un éventuel appel de sa peine.</p>", is_new:true },
+  { id:3003, titre:"AFP — Grève nationale le 4 février : les syndicats s'unissent contre le budget", source:"AFP", source_type:"afp", parti_id:null, date:"2025-01-18", tags:["grève","syndicats","budget","mobilisation"], summary:"CGT, CFDT, FO, SUD et l'UNSA ont signé un appel commun pour une grève interprofessionnelle le 4 février, une unité syndicale rare.", corps:"<p>L'intersyndicale comprenant CGT, CFDT, FO, SUD-Rail et l'UNSA a présenté ce matin un appel commun à une grève nationale le 4 février prochain. C'est la première fois depuis 2010 que les cinq grandes confédérations syndicales se rejoignent dans une action commune.</p><p>Transports, éducation, santé et fonction publique devraient être massivement touchés.</p>", is_new:false },
+  { id:3004, titre:"AFP — Sondage : le RN à 34% des intentions de vote aux prochaines législatives", source:"AFP", source_type:"afp", parti_id:"rn", date:"2025-01-17", tags:["sondage","rn","législatives","intentions de vote"], summary:"Selon un sondage IFOP pour Le Journal du Dimanche, le RN maintient sa première place avec 34%, devant la coalition macroniste (22%) et le NFP (21%).", corps:"<p>Le sondage IFOP réalisé pour Le Journal du Dimanche auprès de 1 500 personnes du 14 au 16 janvier montre un Rassemblement National à 34%, stable par rapport au mois précédent.</p>", is_new:false },
+  { id:3005, titre:"AFP — Mélenchon mis en examen dans l'affaire des assistants LFI", source:"AFP", source_type:"afp", parti_id:"lfi", date:"2025-01-16", tags:["mélenchon","lfi","justice","assistants"], summary:"Le fondateur de LFI a été mis en examen pour détournement de fonds publics par des juges d'instruction parisiens, dans le cadre de l'enquête sur l'emploi fictif d'assistants au Parlement européen.", corps:"<p>Jean-Luc Mélenchon a été mis en examen mardi pour détournement de fonds publics, après avoir été entendu pendant six heures par des juges d'instruction parisiens.</p><p>Cette procédure s'inscrit dans le cadre d'une enquête plus large sur les pratiques d'emploi au sein du groupe LFI au Parlement européen entre 2014 et 2019.</p>", is_new:false },
+  { id:3006, titre:"AFP — Glucksmann : «  Le PS doit redevenir le parti des classes moyennes  »", source:"AFP", source_type:"afp", parti_id:"ps", date:"2025-01-15", tags:["glucksmann","ps","classes moyennes","programme"], summary:"Le secrétaire général du PS présente un nouveau «  contrat de gouvernement  » focalisé sur la fiscalité progressive, le service public de santé et la transition juste.", corps:"<p>Lors d'une conférence de presse au siège du PS, Raphaël Glucksmann a dévoilé les grandes lignes d'un programme présidentiel dont les piliers sont : une fiscalité progressive sur les hauts patrimoines, un «  service public de santé de proximité  » et une «  transition juste  » qui n'abandonne pas les travailleurs des industries polluantes.</p>", is_new:false },
+
+  // === LIBÉRATION ===
+  { id:4001, titre:"Écologie punitive : le grand débat qui fissure la majorité", source:"Libération", source_type:"liberation", parti_id:"renaissance", date:"2025-01-20", tags:["écologie","majorité","Renaissance","transition"], summary:"Au sein même du groupe Renaissance, un courant «  réaliste  » prône un ralentissement de la transition écologique, jugée trop coûteuse en période d'austérité budgétaire.", corps:"<p>Ils sont une quinzaine de députés Renaissance à tenir un discours de plus en plus distancié vis-à-vis des engagements verts du gouvernement. En privé, certains parlent de «  calendrier irréaliste  » et de «  mesures punissantes pour les territoires ruraux  ».</p>", is_new:true },
+  { id:4002, titre:"Cannabis : l'expérience allemande vue de France", source:"Libération", source_type:"liberation", parti_id:null, date:"2025-01-19", tags:["cannabis","légalisation","allemagne","santé"], summary:"Un an après la légalisation du cannabis récréatif en Allemagne, Libération tire le bilan et interroge des élus français sur un éventuel changement de cap.", corps:"<p>Le 1er avril 2024, l'Allemagne légalisait la consommation de cannabis récréatif pour les adultes. Un an plus tard, les résultats sont mitigés mais encourageants : le marché noir a reculé de 20%, les interpellations de petits consommateurs ont chuté, et les recettes fiscales dépassent les prévisions.</p>", is_new:false },
+  { id:4003, titre:"Sécurité : le projet de loi LR divise la droite et la majorité", source:"Libération", source_type:"liberation", parti_id:"lr", date:"2025-01-18", tags:["sécurité","lr","police","loi"], summary:"La proposition de loi LR prévoyant l'expulsion automatique des étrangers condamnés et le rétablissement des peines planchers est renvoyée en commission.", corps:"<p>Le texte porté par Éric Ciotti (avant son exclusion) et repris par son successeur divise même les rangs de la droite.</p>", is_new:false },
+  { id:4004, titre:"Logement : la crise atteint les classes moyennes en Île-de-France", source:"Libération", source_type:"liberation", parti_id:null, date:"2025-01-17", tags:["logement","île-de-france","crise","loyers"], summary:"Les loyers parisiens ont augmenté de 18% en deux ans, excluant des millions de ménages de la capitale et alimentant une demande explosive en grande couronne.", corps:"<p>Selon une étude de la FNAIM publiée ce mardi, le loyer médian à Paris intramuros atteint désormais 32€/m², soit une hausse de 18,3% en 24 mois.</p>", is_new:false },
+  { id:4005, titre:"Le Pen, Bardella, Retailleau : la guerre des chefs au RN", source:"Libération", source_type:"liberation", parti_id:"rn", date:"2025-01-16", tags:["rn","bardella","le pen","retailleau"], summary:"Les tensions entre le parti de Marine Le Pen et le ministre de l'Intérieur Retailleau, allié circonstanciel, révèlent les contradictions internes du mouvement nationaliste.", corps:"<p>Il y a une concurrence non assumée entre Jordan Bardella, Marine Le Pen et Bruno Retailleau pour incarner la droite dure. Chacun joue sa propre partition.</p>", is_new:false },
+  { id:4006, titre:"NFP : la coalition de gauche en ordre dispersé face aux régionales 2025", source:"Libération", source_type:"liberation", parti_id:"lfi", date:"2025-01-15", tags:["nfp","gauche","régionales","coalition"], summary:"LFI, PS, EELV et PCF peinent à s'accorder sur des têtes de liste communes pour les élections régionales de juin 2025, menaçant la survie du Nouveau Front Populaire.", corps:"<p>Six mois après les législatives qui avaient vu le NFP réaliser une performance historique, la coalition de gauche se fracture sur les investitures régionales.</p>", is_new:false },
+
+  // === LE FIGARO ===
+  { id:5001, titre:"Nucléaire : l'EPR2 de Penly entre en phase de construction active", source:"Le Figaro", source_type:"figaro", parti_id:"renaissance", date:"2025-01-20", tags:["nucléaire","epr2","énergie","electricité"], summary:"EDF annonce le début des premiers terrassements sur le site de Penly (Seine-Maritime), marquant une étape décisive pour le premier réacteur nucléaire français construit depuis 30 ans.", corps:"<p>C'est un chantier attendu depuis des années. EDF a officiellement lancé les travaux préparatoires du premier EPR2 à Penly (Seine-Maritime). La mise en service est prévue pour 2037.</p><p>Avec 6 réacteurs EPR2 prévus d'ici 2050, EDF ambitionne de porter la capacité nucléaire française à 83 GW, permettant d'alimenter 100% des besoins en électricité décarbonée.</p>", is_new:true },
+  { id:5002, titre:"Défense : la France commande 200 véhicules blindés Griffon supplémentaires", source:"Le Figaro", source_type:"figaro", parti_id:null, date:"2025-01-19", tags:["défense","armée","griffon","military"], summary:"Le ministère des Armées a notifié une commande de 200 VBMR Griffon à Nexter Systems, dans le cadre de la LPM 2024-2030 portant le budget défense à 2,8% du PIB.", corps:"<p>Cette commande s'inscrit dans la montée en puissance capacitaire de l'armée de Terre décidée après l'invasion russe de l'Ukraine.</p>", is_new:false },
+  { id:5003, titre:"Wauquiez : «  L'union des droites est inévitable pour 2027  »", source:"Le Figaro", source_type:"figaro", parti_id:"lr", date:"2025-01-18", tags:["wauquiez","lr","union des droites","2027"], summary:"Le président de LR plaide pour un rassemblement de toutes les droites, incluant les ex-macronistes modérés, pour construire une alternative à gauche et au RN en vue de la présidentielle.", corps:"<p>Laurent Wauquiez a accordé un long entretien au Figaro dans lequel il esquisse une stratégie présidentielle autour d'une coalition de droite ouverte «  de Retailleau à Bertrand  ».</p>", is_new:false },
+  { id:5004, titre:"Immigration clandestine : les traversées de la Manche en hausse de 28% sur un an", source:"Le Figaro", source_type:"figaro", parti_id:null, date:"2025-01-17", tags:["immigration","manche","traversées","frontières"], summary:"Le ministère de l'Intérieur publie des chiffres montrant une augmentation de 28% des arrivées en small boats depuis les côtes françaises vers le Royaume-Uni.", corps:"<p>Malgré le traité franco-britannique de Calais signé en 2023, les traversées de la Manche reprennent de plus belle.</p>", is_new:false },
+  { id:5005, titre:"Retraites complémentaires : l'Agirc-Arrco résiste au déficit", source:"Le Figaro", source_type:"figaro", parti_id:null, date:"2025-01-16", tags:["retraites","agirc-arrco","pension","économie"], summary:"Les réserves des régimes complémentaires atteignent 80 milliards d'euros, permettant de maintenir les pensions malgré le ralentissement économique.", corps:"<p>L'Agirc-Arrco, qui gère les retraites complémentaires de 12 millions de retraités, présente un bilan rassurant avec 80 milliards d'euros de réserves.</p>", is_new:false },
+  { id:5006, titre:"Bayrou-Macron : la cohabitation qui ne dit pas son nom", source:"Le Figaro", source_type:"figaro", parti_id:"renaissance", date:"2025-01-15", tags:["bayrou","macron","cohabitation","politique"], summary:"Les signaux de tension entre l'Élysée et Matignon se multiplient sur le dossier européen et la réforme des institutions, révélant deux visions différentes du macronisme.", corps:"<p>Derrière la façade consensuelle, les conseillers de l'Élysée et de Matignon se livrent à une guerre d'influence feutrée sur plusieurs dossiers clefs.</p>", is_new:false },
+
+  // === ARTICLES COMPLÉMENTAIRES ===
+  { id:6001, titre:"Planification écologique : le rapport Pisani-Ferry chiffre le coût à 70Mds€/an", source:"Le Monde", source_type:"lemonde", parti_id:null, date:"2025-01-14", tags:["planification","écologie","pisani-ferry","financement"], summary:"L'économiste Jean Pisani-Ferry estime que la France doit mobiliser 70 milliards d'euros supplémentaires par an d'ici 2030 pour tenir ses engagements climatiques.", corps:"<p>L'économiste Jean Pisani-Ferry, déjà auteur d'un rapport commandé par le gouvernement en 2023, réévalue à la hausse le coût de la transition écologique.</p>", is_new:false },
+  { id:6002, titre:"Santé mentale : la psychiatrie française au bord du gouffre", source:"Libération", source_type:"liberation", parti_id:null, date:"2025-01-13", tags:["santé","psychiatrie","hôpital","crise"], summary:"Un rapport de la Cour des comptes alerte sur la dégradation continue de la psychiatrie hospitalière : 12 000 lits fermés en 20 ans, délais d'attente de 6 mois dans certains territoires.", corps:"<p>La Cour des comptes tire la sonnette d'alarme sur l'état de la psychiatrie française.</p>", is_new:false },
+  { id:6003, titre:"Dette publique : la France dépasse les 3 000 milliards d'euros", source:"AFP", source_type:"afp", parti_id:null, date:"2025-01-12", tags:["dette","finances publiques","économie","déficit"], summary:"L'INSEE confirme que la dette publique française a franchi le seuil symbolique des 3 000 milliards d'euros, soit 112% du PIB.", corps:"<p>C'est un cap symbolique franchi. La dette publique française dépasse pour la première fois les 3 000 milliards d'euros, soit 112,3% du PIB selon les chiffres publiés par l'INSEE.</p>", is_new:false },
+  { id:6004, titre:"Éducation : la réforme du lycée professionnel passe par décret", source:"Vie-publique.fr", source_type:"viepublique", parti_id:"renaissance", date:"2025-01-11", tags:["éducation","lycée professionnel","réforme","jeunesse"], summary:"Le gouvernement contourne la concertation syndicale pour imposer par voie réglementaire une augmentation des périodes en entreprise et une réforme du baccalauréat professionnel.", corps:"<p>La réforme du baccalauréat professionnel, qui vise à augmenter le temps de formation en entreprise de 40% à 60%, entre en vigueur par décret sans accord des syndicats enseignants.</p>", is_new:false },
+  { id:6005, titre:"RN et LFI signent une motion de censure commune : la première depuis 2022", source:"AFP", source_type:"afp", parti_id:null, date:"2025-01-10", tags:["motion de censure","rn","lfi","assemblée"], summary:"Les deux partis d'opposition, aux antipodes politiques, ont déposé conjointement une motion de censure contre le gouvernement Bayrou après le 49-3 sur le budget.", corps:"<p>L'alliance objective entre le RN et LFI, deux partis que tout oppose idéologiquement, s'est concrétisée par la signature d'une motion de censure commune.</p>", is_new:false },
+  { id:6006, titre:"Précarité étudiante : 25% des étudiants sautent des repas faute de moyens", source:"Libération", source_type:"liberation", parti_id:null, date:"2025-01-09", tags:["étudiants","précarité","logement","jeunesse"], summary:"Une enquête nationale de l'UNEF révèle que l'un des étudiants sur quatre se prive régulièrement de repas, et que 40% peinent à payer leur loyer.", corps:"<p>L'enquête annuelle de l'UNEF sur les conditions de vie étudiante dresse un tableau alarmant : 25,3% des étudiants déclarent sauter des repas au moins une fois par semaine.</p>", is_new:false },
+  { id:6007, titre:"SMIC : le gouvernement annonce une revalorisation de 2,2% au 1er février", source:"AFP", source_type:"afp", parti_id:"renaissance", date:"2025-01-08", tags:["smic","salaires","pouvoir d'achat","travail"], summary:"La revalorisation automatique du SMIC, indexée sur l'inflation, portera le salaire minimum à 1 426,30€ nets mensuels à partir du 1er février.", corps:"<p>Le SMIC sera revalorisé de 2,2% au 1er février, conformément aux mécanismes légaux d'indexation sur l'inflation. Le salaire minimum atteindra 1 426,30€ nets, soit une hausse de 30€ mensuels.</p>", is_new:false },
+  { id:6008, titre:"Agriculture : la FNSEA demande l'abandon de la directive sur les pesticides", source:"Le Figaro", source_type:"figaro", parti_id:null, date:"2025-01-07", tags:["agriculture","pesticides","fnsea","directive européenne"], summary:"Le syndicat agricole majoritaire exige que la France vote contre la révision de la directive européenne sur les produits phytosanitaires, jugée «  suicidaire  » pour la compétitivité.", corps:"<p>La FNSEA durcit le ton avant les négociations bruxelloises sur la révision de la directive SUD (Sustainable Use Directive).</p>", is_new:false },
+  { id:6009, titre:"Énergie solaire : la France installe 4 GW de panneaux en 2024, un record", source:"Le Monde", source_type:"lemonde", parti_id:null, date:"2025-01-06", tags:["énergie","solaire","renouvelable","record"], summary:"La filière photovoltaïque française célèbre une année record avec 4,1 GW de nouvelles capacités installées, portant le parc total à 22 GW.", corps:"<p>Malgré les controverses sur les panneaux agrivoltaïques, la France a battu son record annuel d'installation de panneaux solaires avec 4,1 GW mis en service en 2024.</p>", is_new:false },
+  { id:6010, titre:"Assurance chômage : la 4e réforme en 10 ans entre en vigueur", source:"Vie-publique.fr", source_type:"viepublique", parti_id:"renaissance", date:"2025-01-05", tags:["assurance chômage","réforme","emploi","indemnisation"], summary:"La nouvelle convention Unédic, validée par le gouvernement, réduit la durée d'indemnisation de 24 à 18 mois et renforce les obligations de recherche active d'emploi.", corps:"<p>La 4e réforme de l'assurance chômage en dix ans entre en vigueur au 1er janvier. La durée maximale d'indemnisation passe de 24 à 18 mois pour les moins de 57 ans.</p>", is_new:false }
+];
+
+// ══════════════════════════════════════════════════════
+//  SOURCES RSS CONFIGURÉES (simulation)
+// ══════════════════════════════════════════════════════
+
+const RSS_SOURCES = [
+  { id:"lemonde", nom:"Le Monde", url:"https://www.lemonde.fr/rss/une.xml", emoji:"📰", actif:true, freq:"15 min", cat:"Presse nationale" },
+  { id:"viepublique", nom:"Vie-publique.fr", url:"https://www.vie-publique.fr/rss-actualites.xml", emoji:"🏛️", actif:true, freq:"30 min", cat:"Officiel" },
+  { id:"afp", nom:"AFP — Politique", url:"https://www.afp.com/fr/rss/politique", emoji:"📡", actif:true, freq:"5 min", cat:"Agence de presse" },
+  { id:"liberation", nom:"Libération", url:"https://www.liberation.fr/arc/outboundfeeds/rss/", emoji:"🗞️", actif:true, freq:"20 min", cat:"Presse nationale" },
+  { id:"figaro", nom:"Le Figaro", url:"https://www.lefigaro.fr/rss/figaro_actualites.xml", emoji:"📋", actif:true, freq:"20 min", cat:"Presse nationale" }
+];
+
+// ══════════════════════════════════════════════════════
+//  ALL KEYWORDS (tags pool)
+// ══════════════════════════════════════════════════════
+
+const ALL_KEYWORDS = [
+  "budget","retraites","immigration","sécurité","écologie","logement","santé","éducation",
+  "smic","emploi","nucléaire","défense","europe","syndicats","constitution","élection",
+  "fiscalité","services publics","dette","énergie"
+];
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+
+let state = {
+  currentScreen: 'hub',
+  propositions: [...MOCK_PROPOSITIONS],
+  politiciens: [...MOCK_POLITICIENS],
+  partis: [...MOCK_PARTIS],
+  articles: [...RSS_ARTICLES_BASE],
+  swipes: JSON.parse(localStorage.getItem('politips_swipes') || '[]'),
+  favorites: JSON.parse(localStorage.getItem('politips_favorites') || '[]'),
+  currentCardIndex: 0,
+  discoveryTab: 'politiciens',
+  newsFilter: 'tous',
+  activeKeywords: [],
+  profileChart: null,
+  lastSync: null,
+  isSyncing: false,
+  logoClickCount: 0,
+  logoClickTimer: null
+};
+
+let userId = localStorage.getItem('politips_uid');
+if (!userId) { userId = 'user_' + Math.random().toString(36).slice(2, 11); localStorage.setItem('politips_uid', userId); }
+
+// ══════════════════════════════════════════════════════
+//  ONBOARDING
+// ══════════════════════════════════════════════════════
+
+function closeOnboarding() {
+  document.getElementById('onboarding').classList.add('hidden');
+  setTimeout(() => { document.getElementById('onboarding').style.display = 'none'; }, 500);
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('bottom-nav').style.display = 'flex';
+  initApp();
+}
+
+if (localStorage.getItem('politips_onboarded')) {
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('bottom-nav').style.display = 'flex';
+  initApp();
+} else {
+  localStorage.setItem('politips_onboarded', '1');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('bottom-nav').style.display = 'none';
+}
+
+function initApp() {
+  renderCardStack();
+  renderDiscovery();
+  renderNews();
+  renderProfile();
+  updateSwipeCounter();
+  renderKeywordBar();
+
+  document.getElementById('logo-btn').addEventListener('click', () => {
+    state.logoClickCount++;
+    clearTimeout(state.logoClickTimer);
+    if (state.logoClickCount >= 2) { openBackoffice(); state.logoClickCount = 0; return; }
+    state.logoClickTimer = setTimeout(() => { state.logoClickCount = 0; }, 500);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════
+
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  state.currentScreen = name;
+  if (name === 'profile') renderProfile();
+  if (name === 'news') { renderNews(); renderKeywordBar(); }
+}
+
+// ══════════════════════════════════════════════════════
+//  SWIPE
+// ══════════════════════════════════════════════════════
+
+function renderCardStack() {
+  const stack = document.getElementById('card-stack');
+  const remaining = state.propositions.slice(state.currentCardIndex);
+  if (remaining.length === 0) {
+    stack.innerHTML = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border-radius:24px;box-shadow:var(--shadow-lg);padding:30px;text-align:center;"><div style="font-size:56px;margin-bottom:16px;">🎉</div><h3 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;">Bravo !</h3><p style="color:var(--text-muted);font-size:14px;line-height:1.6;">Tu as voté sur toutes les propositions. Consulte ton profil !</p><button class="btn-coral" style="margin-top:20px;" onclick="switchScreen('profile')">Voir mes résultats 🎯</button><button class="btn-outline" style="margin-top:10px;" onclick="restartSwipe()">Recommencer</button></div>`;
+    return;
+  }
+  stack.innerHTML = '';
+  const show = remaining.slice(0, 3).reverse();
+  show.forEach((prop, i) => {
+    const isTop = i === show.length - 1;
+    stack.appendChild(createCard(prop, isTop, i, show.length));
+  });
+  renderProgressDots();
+  updateSwipeCounter();
+}
+
+function createCard(prop, isTop, stackPos, total) {
+  const catClass = { 'Écologie':'cat-ecologie','Économie':'cat-economie','Défense':'cat-defense','Santé':'cat-sante' }[prop.categorie] || 'cat-economie';
+  const catIcon = { 'Écologie':'🌿','Économie':'💰','Défense':'🛡️','Santé':'❤️' }[prop.categorie] || '💡';
+  const cardClass = isTop ? 'card-top' : (stackPos === 0 ? 'card-back-1' : 'card-back-2');
+  const div = document.createElement('div');
+  div.className = `swipe-card ${catClass} ${cardClass}`;
+  div.dataset.id = prop.id;
+  div.innerHTML = `<span class="card-icon-big">${catIcon}</span><div class="card-header"><div class="card-cat-badge"><span>${catIcon}</span> ${prop.categorie}</div><div class="card-proposition">${prop.intitule}</div></div><div class="card-body"><div class="card-context">${prop.contexte}</div></div><div class="card-footer"><span style="font-size:12px;color:var(--text-muted);">Glisse ou vote ci-dessous</span><span style="font-size:12px;font-weight:600;color:var(--text-muted);">${state.currentCardIndex + 1}/${state.propositions.length}</span></div><div class="stamp-pour">POUR ✓</div><div class="stamp-contre">CONTRE ✗</div><div class="stamp-neutre">🤷</div>`;
+  if (isTop) setupCardDrag(div);
+  return div;
+}
+
+function setupCardDrag(card) {
+  let startX, startY, isDragging = false, currentX = 0;
+  const onStart = (e) => { startX = (e.touches ? e.touches[0].clientX : e.clientX); startY = (e.touches ? e.touches[0].clientY : e.clientY); isDragging = true; card.style.transition = 'none'; };
+  const onMove = (e) => {
+    if (!isDragging) return;
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - startX;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - startY;
+    currentX = x;
+    card.style.transform = `translateX(${x}px) translateY(${y * 0.2}px) rotate(${x * 0.1}deg)`;
+    card.querySelector('.stamp-pour').style.opacity = x > 30 ? Math.min((x-30)/80,1) : 0;
+    card.querySelector('.stamp-contre').style.opacity = x < -30 ? Math.min((-x-30)/80,1) : 0;
+    card.querySelector('.stamp-neutre').style.opacity = (Math.abs(x) < 30 && y < -40) ? Math.min((-y-40)/60,1) : 0;
+  };
+  const onEnd = () => {
+    if (!isDragging) return;
+    isDragging = false; card.style.transition = '';
+    if (currentX > 80) doSwipe('pour');
+    else if (currentX < -80) doSwipe('contre');
+    else { card.style.transform = ''; card.querySelectorAll('.stamp-pour,.stamp-contre,.stamp-neutre').forEach(s => s.style.opacity = 0); }
+    currentX = 0;
+  };
+  card.addEventListener('mousedown', onStart); card.addEventListener('touchstart', onStart, {passive:true});
+  document.addEventListener('mousemove', onMove); document.addEventListener('touchmove', onMove, {passive:true});
+  document.addEventListener('mouseup', onEnd); document.addEventListener('touchend', onEnd);
+}
+
+function doSwipe(choix) {
+  const remaining = state.propositions.slice(state.currentCardIndex);
+  if (!remaining.length) return;
+  const prop = remaining[0];
+  const topCard = document.querySelector('.swipe-card.card-top');
+  if (!topCard) return;
+  state.swipes.push({ prop_id: prop.id, choix });
+  localStorage.setItem('politips_swipes', JSON.stringify(state.swipes));
+  topCard.style.transition = 'transform .35s cubic-bezier(.4,0,.2,1), opacity .3s';
+  if (choix === 'pour') { topCard.querySelector('.stamp-pour').style.opacity = 1; topCard.classList.add('swiping-right'); }
+  else if (choix === 'contre') { topCard.querySelector('.stamp-contre').style.opacity = 1; topCard.classList.add('swiping-left'); }
+  else topCard.classList.add('swiping-up');
+  showToast({ pour:'✅ Pour', contre:'❌ Contre', neutre:'🤷 Neutre' }[choix]);
+  state.currentCardIndex++;
+  setTimeout(() => renderCardStack(), 380);
+}
+
+function undoSwipe() {
+  if (!state.currentCardIndex) { showToast('Rien à annuler !'); return; }
+  state.currentCardIndex--; state.swipes.pop();
+  localStorage.setItem('politips_swipes', JSON.stringify(state.swipes));
+  renderCardStack(); showToast('↩️ Annulé');
+}
+
+function restartSwipe() { state.currentCardIndex = 0; renderCardStack(); }
+
+function renderProgressDots() {
+  const total = state.propositions.length, current = state.currentCardIndex;
+  document.getElementById('progress-dots').innerHTML = Array.from({length: Math.min(total,10)}, (_,i) =>
+    `<div class="pdot ${i<current?'done':i===current?'active':''}"></div>`).join('');
+}
+
+function updateSwipeCounter() {
+  const c = state.swipes.length;
+  ['swipe-counter','profile-swipe-count'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=`${c} vote${c>1?'s':''}`; });
+}
+
+// ══════════════════════════════════════════════════════
+//  DISCOVERY
+// ══════════════════════════════════════════════════════
+
+function switchDiscoveryTab(tab) {
+  state.discoveryTab = tab;
+  document.getElementById('tab-pol').classList.toggle('active', tab === 'politiciens');
+  document.getElementById('tab-par').classList.toggle('active', tab === 'partis');
+  document.getElementById('search-input').value = '';
+  renderDiscovery();
+}
+
+function filterDiscovery() { renderDiscovery(); }
+
+function renderDiscovery() {
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const container = document.getElementById('discovery-content');
+  if (state.discoveryTab === 'politiciens') {
+    const filtered = state.politiciens.filter(p => p.nom.toLowerCase().includes(q) || p.poste.toLowerCase().includes(q));
+    container.innerHTML = `<div class="grid-2">${filtered.map(p => renderPersonCard(p)).join('')}</div>`;
+  } else {
+    const filtered = state.partis.filter(p => p.nom.toLowerCase().includes(q) || p.sigle.toLowerCase().includes(q));
+    container.innerHTML = `<div class="grid-2">${filtered.map(p => renderPartiCard(p)).join('')}</div>`;
+  }
+  const fc = state.favorites.length;
+  const fcEl = document.getElementById('fav-count');
+  if (fcEl) fcEl.textContent = `❤️ ${fc} favori${fc>1?'s':''}`;
+}
+
+function renderPersonCard(p) {
+  const isFav = state.favorites.includes('pol_' + p.id);
+  return `<div style="position:relative;" onclick="openPersonDetail(${p.id})"><div class="card-person"><div class="card-person-img">${p.emoji}</div><div class="card-person-info"><div class="card-person-name">${p.nom}</div><div class="card-person-role">${p.poste}</div><div style="margin-top:6px;"><span class="pill" style="background:${getPartiColor(p.parti_id)}20;color:${getPartiColor(p.parti_id)};font-size:10px;">${getPartiSigle(p.parti_id)}</span></div></div></div><div class="card-person-fav" onclick="event.stopPropagation();toggleFav('pol_${p.id}')">${isFav?'❤️':'🤍'}</div></div>`;
+}
+
+function renderPartiCard(p) {
+  const isFav = state.favorites.includes('par_' + p.id);
+  return `<div style="position:relative;" onclick="openPartiDetail('${p.id}')"><div class="card-parti"><div class="card-parti-logo" style="background:${p.couleur}18;">${p.emoji}</div><div class="card-parti-info"><div class="card-parti-name">${p.nom}</div><div class="card-parti-sigle">${p.sigle}</div></div></div><div class="card-person-fav" onclick="event.stopPropagation();toggleFav('par_${p.id}')" style="top:8px;right:8px;">${isFav?'❤️':'🤍'}</div></div>`;
+}
+
+function toggleFav(key) {
+  const idx = state.favorites.indexOf(key);
+  if (idx >= 0) state.favorites.splice(idx, 1);
+  else state.favorites.push(key);
+  localStorage.setItem('politips_favorites', JSON.stringify(state.favorites));
+  renderDiscovery();
+  renderNews();
+  showToast(idx >= 0 ? '💔 Retiré des favoris' : '❤️ Ajouté aux favoris');
+}
+
+function getPartiColor(id) { const p = state.partis.find(x=>x.id===id); return p ? p.couleur : '#64748B'; }
+function getPartiSigle(id) { const p = state.partis.find(x=>x.id===id); return p ? p.sigle : '?'; }
+function getPartiNom(id) { const p = state.partis.find(x=>x.id===id); return p ? p.nom : '?'; }
+
+function openPersonDetail(id) {
+  const p = state.politiciens.find(x=>x.id===id);
+  if (!p) return;
+  document.getElementById('detail-panel-content').innerHTML = `<div class="detail-hero"><div class="detail-back" onclick="closeDetail()"><i class="fa-solid fa-arrow-left"></i></div><div class="detail-avatar">${p.emoji}</div><div class="detail-name">${p.nom}</div><div class="detail-role">${p.poste}</div><div class="detail-badge" style="background:${getPartiColor(p.parti_id)}40;">🏛️ ${getPartiNom(p.parti_id)}</div></div><div class="detail-body"><div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;border:1.5px solid var(--border);"><div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.6px;margin-bottom:8px;text-transform:uppercase;">Biographie</div><div style="font-size:13.5px;line-height:1.7;">${p.biographie}</div></div><div class="accordion" onclick="toggleAccordion(this)"><div class="accordion-header">📚 Parcours <i class="fa-solid fa-chevron-down accordion-arrow"></i></div><div class="accordion-body">${p.histoire}</div></div><div class="accordion" onclick="toggleAccordion(this)"><div class="accordion-header">⚖️ Lois & propositions <i class="fa-solid fa-chevron-down accordion-arrow"></i></div><div class="accordion-body">${p.lois_votees}</div></div></div>`;
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function openPartiDetail(id) {
+  const p = state.partis.find(x=>x.id===id);
+  if (!p) return;
+  document.getElementById('detail-panel-content').innerHTML = `<div class="detail-hero" style="background:linear-gradient(135deg,${p.couleur},${p.couleur}99);"><div class="detail-back" onclick="closeDetail()"><i class="fa-solid fa-arrow-left"></i></div><div class="detail-avatar" style="background:rgba(255,255,255,.15);font-size:42px;width:80px;height:80px;border-radius:20px;display:flex;align-items:center;justify-content:center;">${p.emoji}</div><div class="detail-name">${p.nom}</div><div class="detail-role">${p.sigle} · Parti politique</div></div><div class="detail-body"><div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;border:1.5px solid var(--border);"><div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.6px;margin-bottom:8px;text-transform:uppercase;">Présentation</div><div style="font-size:13.5px;line-height:1.7;">${p.description}</div></div><div class="accordion" onclick="toggleAccordion(this)"><div class="accordion-header">📜 Histoire <i class="fa-solid fa-chevron-down accordion-arrow"></i></div><div class="accordion-body">${p.histoire}</div></div><div class="accordion" onclick="toggleAccordion(this)"><div class="accordion-header">⚖️ Lois & positions <i class="fa-solid fa-chevron-down accordion-arrow"></i></div><div class="accordion-body">${p.lois_votees}</div></div></div>`;
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function closeDetail() { document.getElementById('detail-panel').classList.remove('open'); }
+function toggleAccordion(el) {
+  el.querySelector('.accordion-body').classList.toggle('open');
+  el.querySelector('.accordion-arrow').classList.toggle('open');
+}
+
+// ══════════════════════════════════════════════════════
+//  NEWS — filtrage + mots-clés
+// ══════════════════════════════════════════════════════
+
+function getFilteredArticles() {
+  let articles = [...state.articles];
+
+  // Filtre par parti (chips du haut)
+  if (state.newsFilter === 'favoris') {
+    // Récupère les mots-clés de tous les favoris (partis + politiciens)
+    const favPartiIds = state.favorites.filter(f=>f.startsWith('par_')).map(f=>f.replace('par_',''));
+    const favPolIds = state.favorites.filter(f=>f.startsWith('pol_')).map(f=>parseInt(f.replace('pol_','')));
+    const favKeywords = [];
+    favPartiIds.forEach(id => { const p = state.partis.find(x=>x.id===id); if(p) favKeywords.push(...p.keywords); });
+    favPolIds.forEach(id => { const p = state.politiciens.find(x=>x.id===id); if(p) favKeywords.push(...p.keywords); });
+    if (favKeywords.length === 0) return [];
+    articles = articles.filter(a => {
+      const text = (a.titre + ' ' + a.summary + ' ' + (a.tags||[]).join(' ') + ' ' + (a.parti_id||'')).toLowerCase();
+      return favKeywords.some(kw => text.includes(kw.toLowerCase()));
+    });
+  } else if (state.newsFilter !== 'tous') {
+    articles = articles.filter(a => a.parti_id === state.newsFilter);
+  }
+
+  // Filtre par mots-clés actifs (tag chips)
+  if (state.activeKeywords.length > 0) {
+    articles = articles.filter(a => {
+      const text = (a.titre + ' ' + a.summary + ' ' + (a.tags||[]).join(' ')).toLowerCase();
+      return state.activeKeywords.every(kw => text.includes(kw));
+    });
+  }
+
+  return articles;
+}
+
+function filterNews(f, el) {
+  state.newsFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderNews();
+}
+
+function toggleKeyword(kw) {
+  const idx = state.activeKeywords.indexOf(kw);
+  if (idx >= 0) state.activeKeywords.splice(idx, 1);
+  else state.activeKeywords.push(kw);
+  renderKeywordBar();
+  renderNews();
+}
+
+function renderKeywordBar() {
+  const bar = document.getElementById('keyword-bar');
+  if (!bar) return;
+  bar.innerHTML = `<span class="keyword-label">Tags :</span>` +
+    ALL_KEYWORDS.map(kw => `<div class="keyword-chip ${state.activeKeywords.includes(kw)?'active':''}" onclick="toggleKeyword('${kw}')">${kw}</div>`).join('');
+}
+
+function renderNews() {
+  const articles = getFilteredArticles();
+  const list = document.getElementById('news-list');
+  if (!list) return;
+
+  // Stats bar
+  const statsEl = document.getElementById('news-stats-container');
+  if (statsEl) {
+    const total = state.articles.length;
+    const nouv = state.articles.filter(a=>a.is_new).length;
+    const sources = [...new Set(state.articles.map(a=>a.source_type))].length;
+    statsEl.innerHTML = `<div class="news-stats-bar"><div class="stat"><div class="stat-num">${total}</div><div class="stat-lbl">Articles</div></div><div class="divider-v"></div><div class="stat"><div class="stat-num" style="color:var(--coral);">${nouv}</div><div class="stat-lbl">Nouveaux</div></div><div class="divider-v"></div><div class="stat"><div class="stat-num">${sources}</div><div class="stat-lbl">Sources</div></div><div class="divider-v"></div><div class="stat"><div class="stat-num">${articles.length}</div><div class="stat-lbl">Filtrés</div></div></div>`;
+  }
+
+  if (articles.length === 0) {
+    if (state.newsFilter === 'favoris' && state.favorites.length === 0) {
+      list.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:14px;line-height:1.7;">Ajoute des partis ou des politiciens en ❤️ favoris pour voir leur flux d'actualités ici.</div>`;
+    } else {
+      list.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:14px;line-height:1.7;">Aucun article ne correspond à tes filtres. Essaie de réinitialiser les tags ou de changer de catégorie.</div>`;
+    }
+    return;
+  }
+
+  list.innerHTML = articles.map(a => renderNewsCard(a)).join('');
+}
+
+function renderNewsCard(a) {
+  const parti = a.parti_id ? state.partis.find(p=>p.id===a.parti_id) : null;
+  const partiBadge = parti ? `<span class="news-parti-badge" style="background:${parti.couleur}20;color:${parti.couleur};">${parti.sigle}</span>` : '';
+  const d = new Date(a.date);
+  const dateStr = d.toLocaleDateString('fr-FR', {day:'numeric', month:'short'});
+  const matchedTags = (a.tags||[]).filter(t => state.activeKeywords.includes(t));
+  const tagsHtml = (a.tags||[]).length > 0 ? `<div class="news-tags">${(a.tags||[]).map(t=>`<span class="news-tag ${matchedTags.includes(t)?'matched':''}">${t}</span>`).join('')}</div>` : '';
+  return `<div class="news-card ${a.is_new?'new-article':''}" onclick="openArticle(${a.id})">
+    <div class="news-meta">
+      <span class="news-source-badge">${a.source}</span>
+      ${partiBadge}
+      <span class="news-date">${dateStr}</span>
+    </div>
+    <div class="news-title">${a.titre}</div>
+    <div class="news-content">${a.summary}</div>
+    ${tagsHtml}
+  </div>`;
+}
+
+function openArticle(id) {
+  const a = state.articles.find(x=>x.id===id);
+  if (!a) return;
+  a.is_new = false; // mark as read
+  const parti = a.parti_id ? state.partis.find(p=>p.id===a.parti_id) : null;
+  const partiBadge = parti ? `<span style="background:${parti.couleur}30;color:${parti.couleur};font-size:11px;font-weight:700;padding:4px 10px;border-radius:50px;">${parti.sigle}</span>` : '';
+  const tagsHtml = (a.tags||[]).map(t=>`<span style="background:rgba(255,255,255,.12);font-size:10px;padding:3px 9px;border-radius:50px;font-weight:600;">${t}</span>`).join('');
+  document.getElementById('article-detail-content').innerHTML = `
+    <div class="article-detail-hero">
+      <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:16px;" onclick="closeArticle()"><i class="fa-solid fa-arrow-left"></i></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <span style="background:rgba(255,255,255,.12);font-size:11px;font-weight:700;padding:3px 10px;border-radius:50px;">${a.source}</span>
+        ${partiBadge}
+      </div>
+      <h1 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;line-height:1.3;margin-bottom:10px;">${a.titre}</h1>
+      <div style="opacity:.6;font-size:12px;margin-bottom:10px;">${new Date(a.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">${tagsHtml}</div>
+    </div>
+    <div class="article-body">
+      <p style="font-size:15px;font-weight:500;color:var(--navy);line-height:1.7;margin-bottom:16px;border-left:3px solid var(--coral);padding-left:14px;">${a.summary}</p>
+      ${a.corps || ''}
+      <div style="margin-top:24px;padding:14px;background:var(--bg2);border-radius:10px;font-size:11px;color:var(--text-muted);line-height:1.7;">
+        📡 <strong>Source simulée :</strong> Cet article est un contenu de démonstration généré pour simuler le flux RSS de <em>${a.source}</em>. Dans la version de production, ce lien renverrait vers l'article original.
+      </div>
+    </div>`;
+  document.getElementById('article-detail').classList.add('open');
+}
+
+function closeArticle() {
+  document.getElementById('article-detail').classList.remove('open');
+  renderNews();
+}
+
+// ══════════════════════════════════════════════════════
+//  RSS SYNC SIMULATOR
+// ══════════════════════════════════════════════════════
+
+// Articles supplémentaires injectés lors de la synchro (batch de 15 articles)
+const RSS_SYNC_BATCH = [
+  { id:7001, titre:"Macron reçoit les syndicats à l'Élysée : dialogue ou trompe-l'œil ?", source:"Le Monde", source_type:"lemonde", parti_id:"renaissance", date:"2025-01-21", tags:["macron","syndicats","dialogue","gouvernement"], summary:"Le chef de l'État a réuni les huit principales confédérations syndicales pour une séance de concertation sur le budget, la première depuis la crise des Gilets Jaunes.", corps:"<p>C'est un geste symbolique fort. Emmanuel Macron a reçu mardi matin, salle des fêtes de l'Élysée, les secrétaires généraux de la CGT, CFDT, FO, SUD, UNSA, CFE-CGC, CFTC et FSU pour une séquence de concertation inédite depuis 2019.</p><blockquote>«  Le président a écouté. Mais écouter n'est pas entendre, et entendre n'est pas agir.  » — Sophie Binet, secrétaire générale de la CGT</blockquote>", is_new:true },
+  { id:7002, titre:"Bardella : portrait d'un leader en route pour 2027", source:"Le Figaro", source_type:"figaro", parti_id:"rn", date:"2025-01-21", tags:["bardella","rn","présidentielle","portrait"], summary:"À 29 ans, Jordan Bardella incarne le renouveau du Rassemblement National. Rencontre avec un candidat qui cultive sa différence avec Marine Le Pen.", corps:"<p>Il n'a pas encore 30 ans mais il dirige le premier parti de France en nombre de voix. Jordan Bardella a accordé au Figaro une interview exclusive dans laquelle il développe sa vision de la France de 2027.</p>", is_new:true },
+  { id:7003, titre:"LFI : une motion interne demande le départ de Mélenchon de la direction", source:"Libération", source_type:"liberation", parti_id:"lfi", date:"2025-01-21", tags:["lfi","mélenchon","direction","crise"], summary:"Trente-deux membres du conseil politique de LFI ont signé une tribune interne réclamant «  un renouvellement de la direction  » après la mise en examen du fondateur.", corps:"<p>La pression monte à l'intérieur de La France Insoumise. Trente-deux membres du conseil politique national ont signé une tribune interne réclamant une «  refonte de la gouvernance  ».</p>", is_new:true },
+  { id:7004, titre:"Droite : Retailleau veut un «  pôle républicain  » regroupant LR, Horizons et les macronistes de droite", source:"AFP", source_type:"afp", parti_id:"lr", date:"2025-01-21", tags:["retailleau","lr","droite","coalition"], summary:"Le ministre de l'Intérieur esquisse une grande coalition de droite qui pourrait peser jusqu'à 30% dans les sondages et incarner une alternative crédible en 2027.", corps:"<p>Bruno Retailleau a confirmé dans une interview à CNews son intention de structurer une fédération de droite incluant LR, Horizons et les sensibilités droitières de Renaissance.</p>", is_new:true },
+  { id:7005, titre:"Vie-publique : dossier spécial sur le 49-3 et ses usages", source:"Vie-publique.fr", source_type:"viepublique", parti_id:null, date:"2025-01-21", tags:["49-3","constitution","gouvernement","parlement"], summary:"Depuis 1958, l'article 49-3 a été utilisé 90 fois. Ce dossier retrace l'histoire et les controverses autour de cet outil constitutionnel unique en Europe.", corps:"<p>L'article 49 alinéa 3 de la Constitution de 1958 permet au gouvernement d'engager sa responsabilité sur le vote d'un texte financier. Utilisé 90 fois depuis son introduction, il est au cœur de toutes les critiques sur le déficit démocratique de la Ve République.</p>", is_new:true },
+  { id:7006, titre:"Grève du 4 février : les transports en commun fortement perturbés", source:"AFP", source_type:"afp", parti_id:null, date:"2025-01-21", tags:["grève","transports","sncf","ratp"], summary:"La SNCF prévoit 1 TGV sur 3 et 1 Intercité sur 5. La RATP annonce un service «  très perturbé  » sur l'ensemble du réseau francilien.", corps:"<p>La SNCF a publié ses prévisions pour la journée de grève interprofessionnelle du 4 février : 1 TGV sur 3 circulera, 1 Intercité sur 5, et le trafic Transilien sera réduit à 30% de son niveau normal.</p>", is_new:true },
+  { id:7007, titre:"Nouvelle-Calédonie : l'accord de gouvernance validé par référendum local", source:"AFP", source_type:"afp", parti_id:null, date:"2025-01-21", tags:["nouvelle-calédonie","referendum","outre-mer","autonomie"], summary:"Les électeurs calédoniens ont approuvé à 54% un nouvel accord de gouvernance bipartite entre les indépendantistes et les loyalistes, ouvrant une période de transition.", corps:"<p>La Nouvelle-Calédonie a dit oui. À 54,3% des suffrages exprimés, les électeurs de l'archipel ont approuvé un accord de gouvernance transitoire qui prévoit une autonomie élargie sans indépendance formelle.</p>", is_new:true },
+  { id:7008, titre:"Réforme scolaire : le retour du redoublement relance le débat", source:"Le Monde", source_type:"lemonde", parti_id:null, date:"2025-01-21", tags:["éducation","redoublement","scolaire","réforme"], summary:"Le ministre de l'Éducation nationale annonce la réintroduction possible du redoublement en fin de CM2 pour les élèves n'ayant pas atteint le niveau requis en lecture et calcul.", corps:"<p>Le retour du redoublement ? L'idée, qui semblait enterrée depuis les rapports Haut Conseil de l'Éducation des années 2000, revient sur la table avec force.</p>", is_new:true },
+  { id:7009, titre:"Le Pen : son procès en appel fixé au 15 mars 2025", source:"AFP", source_type:"afp", parti_id:"rn", date:"2025-01-21", tags:["le pen","rn","justice","appel"], summary:"La cour d'appel de Paris a fixé l'examen de l'appel de Marine Le Pen dans l'affaire des assistants parlementaires européens au 15 mars prochain.", corps:"<p>La cour d'appel de Paris examinera le recours de Marine Le Pen contre sa condamnation en première instance à cinq ans d'inéligibilité à partir du 15 mars.</p>", is_new:true },
+  { id:7010, titre:"EELV et PS s'affrontent sur la stratégie nucléaire au sein du NFP", source:"Libération", source_type:"liberation", parti_id:"eelv", date:"2025-01-21", tags:["eelv","ps","nucléaire","nfp","coalition"], summary:"La question de la sortie du nucléaire cristallise les tensions entre les Verts, fermement antinucléaires, et les socialistes qui acceptent une prolongation partielle des centrales.", corps:"<p>Au sein du Nouveau Front Populaire, la question du nucléaire revient comme un boomerang. EELV maintient sa position de principe pour une sortie en 2035, quand le PS accepte désormais la prolongation de plusieurs tranches en attendant que les renouvelables prennent le relais.</p>", is_new:true },
+  { id:7011, titre:"Emploi des seniors : le gouvernement présente son plan «  Second Souffle  »", source:"Vie-publique.fr", source_type:"viepublique", parti_id:"renaissance", date:"2025-01-21", tags:["emploi","seniors","travail","retraites"], summary:"Le ministre du Travail dévoile un plan d'action pour relever le taux d'emploi des 55-64 ans, l'un des plus faibles d'Europe, à travers 8 mesures d'incitation.", corps:"<p>La France se distingue par un taux d'emploi des seniors particulièrement bas : seulement 56% des 55-64 ans sont en emploi, contre 72% en Allemagne.</p>", is_new:true },
+  { id:7012, titre:"Économie : l'inflation repasse sous les 2% pour la première fois depuis 2021", source:"AFP", source_type:"afp", parti_id:null, date:"2025-01-21", tags:["inflation","économie","pouvoir d'achat","prix"], summary:"L'INSEE annonce un taux d'inflation de 1,8% sur douze mois en décembre 2024, le niveau le plus bas depuis novembre 2021, porté par la baisse des prix de l'énergie.", corps:"<p>La décrue de l'inflation se confirme. Selon les chiffres définitifs de l'INSEE, l'indice des prix à la consommation a progressé de 1,8% sur les douze derniers mois en décembre 2024.</p>", is_new:true },
+  { id:7013, titre:"Cannabis médicinal : le premier dispensaire légal ouvre à Paris", source:"Le Monde", source_type:"lemonde", parti_id:null, date:"2025-01-21", tags:["cannabis","santé","légalisation","médecine"], summary:"Deux ans après la fin de l'expérimentation nationale, le gouvernement autorise l'ouverture de 50 «  centres thérapeutiques du cannabis  » dans toute la France.", corps:"<p>C'est une petite révolution discrète mais réelle. Depuis ce lundi, les patients souffrant de douleurs chroniques, de sclérose en plaques ou de certaines formes d'épilepsie peuvent obtenir du cannabis médical en pharmacie sur ordonnance spéciale.</p>", is_new:true },
+  { id:7014, titre:"Logement social : la loi SRU renforcée, amendes triplées pour les communes défaillantes", source:"Vie-publique.fr", source_type:"viepublique", parti_id:null, date:"2025-01-21", tags:["logement","sru","social","communes"], summary:"L'Assemblée nationale a adopté en première lecture un renforcement de la loi SRU prévoyant de tripler les pénalités pour les communes ne respectant pas leurs quotas de 25% de logements sociaux.", corps:"<p>La loi SRU, qui impose à de nombreuses communes un quota de 25% de logements sociaux, sera renforcée après le vote de l'Assemblée nationale.</p>", is_new:true },
+  { id:7015, titre:"Scrutin proportionnel : un rapport parlementaire relance le débat sur la réforme électorale", source:"AFP", source_type:"afp", parti_id:null, date:"2025-01-21", tags:["proportionnelle","réforme électorale","parlement","démocratie"], summary:"Un rapport de la commission des lois préconise l'introduction d'une dose de proportionnelle à 25% pour les élections législatives, afin de mieux représenter les partis minoritaires.", corps:"<p>Faut-il introduire une dose de proportionnelle dans le scrutin législatif français ? C'est la recommandation principale du rapport Faure-Lagarde remis au président de l'Assemblée nationale.</p>", is_new:true }
+];
+
+function simulerSynchroRSS() {
+  if (state.isSyncing) return;
+  state.isSyncing = true;
+
+  const btn = document.getElementById('btn-rss-sync');
+  const logEl = document.getElementById('sync-log');
+  const previewEl = document.getElementById('rss-results-preview');
+
+  btn.classList.add('rss-syncing');
+  btn.innerHTML = `<span class="rss-wave"></span> Synchronisation en cours…`;
+  logEl.style.display = 'block';
+  logEl.innerHTML = '';
+  previewEl.innerHTML = '';
+
+  const kws = document.getElementById('rss-keywords-input').value.split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+
+  function log(msg, type='ok') {
+    logEl.innerHTML += `<div class="log-${type}">${msg}</div>`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  const steps = [
+    [300,  () => log('[INFO] Démarrage de la session de scraping…', 'info')],
+    [600,  () => log('[INFO] Connexion aux endpoints RSS configurés…', 'info')],
+    [900,  () => log('[OK]   Le Monde — flux récupéré (8 794 bytes)', 'ok')],
+    [1100, () => log('[OK]   Vie-publique.fr — flux récupéré (5 231 bytes)', 'ok')],
+    [1300, () => log('[OK]   AFP — flux récupéré (12 406 bytes)', 'ok')],
+    [1500, () => log('[OK]   Libération — flux récupéré (7 818 bytes)', 'ok')],
+    [1700, () => log('[OK]   Le Figaro — flux récupéré (9 102 bytes)', 'ok')],
+    [2000, () => log('[INFO] Parsing XML… 87 articles bruts détectés', 'info')],
+    [2200, () => log(`[INFO] Application des filtres mots-clés : [${kws.slice(0,4).join(', ')}…]`, 'info')],
+    [2400, () => log('[INFO] Dé-duplication des articles déjà en base…', 'info')],
+    [2700, () => log('[INFO] Analyse NLP des entités nommées (partis, politiciens)…', 'info')],
+    [3000, () => log('[INFO] Enrichissement automatique des tags thématiques…', 'info')],
+    [3200, () => log('[WARN] 3 articles sans affiliation partisane détectée → étiquetés "neutre"', 'warn')],
+    [3500, () => log('[OK]   15 nouveaux articles éligibles après filtrage', 'ok')],
+    [3700, () => log('[OK]   Insertion en base simulée… 15/15 articles traités', 'ok')],
+    [3900, () => log('[OK]   Index de recherche mis à jour', 'ok')],
+    [4100, () => log(`[OK]   Synchro terminée — ${new Date().toLocaleTimeString('fr-FR')} ✓`, 'ok')],
+    [4300, () => {
+      // Inject articles
+      const newIds = new Set(state.articles.map(a=>a.id));
+      const toAdd = RSS_SYNC_BATCH.filter(a=>!newIds.has(a.id));
+      toAdd.forEach(a => { a.is_new = true; });
+      state.articles = [...toAdd, ...state.articles];
+      state.lastSync = new Date();
+
+      // Update sync indicator
+      const ind = document.getElementById('news-sync-indicator');
+      if (ind) ind.innerHTML = `<span class="rss-wave"></span> Sync. ${state.lastSync.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'})}`;
+
+      // Preview
+      previewEl.innerHTML = `<div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📥 ${toAdd.length} articles injectés :</div>` +
+        toAdd.slice(0,6).map(a => `<div style="background:var(--bg2);border-radius:8px;padding:10px 12px;margin-bottom:6px;border-left:3px solid ${a.parti_id?getPartiColor(a.parti_id):'#94A3B8'};"><div style="font-size:12px;font-weight:600;margin-bottom:2px;">${a.titre}</div><div style="font-size:11px;color:var(--text-muted);">${a.source} · ${(a.tags||[]).join(', ')}</div></div>`).join('') +
+        (toAdd.length > 6 ? `<div style="font-size:11px;color:var(--text-muted);padding:4px 8px;">+ ${toAdd.length-6} autres articles…</div>` : '');
+
+      // Nav dot
+      document.getElementById('nav-dot-news').classList.add('show');
+      setTimeout(() => document.getElementById('nav-dot-news').classList.remove('show'), 5000);
+
+      btn.classList.remove('rss-syncing');
+      btn.innerHTML = `<span>✅</span> Synchronisation réussie — ${toAdd.length} articles ajoutés`;
+      state.isSyncing = false;
+      showToast(`📡 ${toAdd.length} articles RSS synchronisés !`);
+
+      // If currently viewing news, refresh
+      if (state.currentScreen === 'news') renderNews();
+    }]
+  ];
+
+  steps.forEach(([delay, fn]) => setTimeout(fn, delay));
+}
+
+function renderRSSSources() {
+  const container = document.getElementById('rss-sources-list');
+  if (!container) return;
+  container.innerHTML = RSS_SOURCES.map(s => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:18px;">${s.emoji}</span>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;">${s.nom}</div>
+        <div style="font-size:10px;color:var(--text-muted);">${s.url}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:10px;font-weight:700;color:var(--green-vote);">● ACTIF</div>
+        <div style="font-size:10px;color:var(--text-muted);">${s.freq}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  PROFILE
+// ══════════════════════════════════════════════════════
+
+function renderProfile() {
+  const affinity = computeAffinity();
+  const swipeCount = state.swipes.length;
+  const byTheme = computeThemeBreakdown();
+
+  document.getElementById('profile-content').innerHTML = `
+    <div style="background:var(--bg2);border-left:3px solid var(--coral);padding:12px 16px;margin:12px 16px;border-radius:0 8px 8px 0;font-size:12px;color:var(--text-muted);line-height:1.5;">
+      🔒 Résultats basés sur un algorithme de test. Invitent à l'esprit critique. Aucune donnée nominative collectée.
+    </div>
+    <div class="profile-section">
+      <div class="section-title">Mon bord politique</div>
+      <div class="profile-card">
+        ${swipeCount === 0 ? `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:14px;">Vote sur quelques propositions pour voir ton bord politique 💡</div>` : `
+          <div class="chart-container"><canvas id="affinity-chart" width="220" height="220"></canvas></div>
+          <div style="margin-top:16px;display:flex;flex-direction:column;gap:6px;">
+            ${state.partis.map(p => {
+              const sc = affinity[p.id]||0, total=Object.values(affinity).reduce((a,b)=>a+b,0)||1;
+              const pct = Math.round((sc/total)*100);
+              return `<div style="display:flex;align-items:center;gap:8px;"><span style="width:12px;height:12px;border-radius:50%;background:${p.couleur};flex-shrink:0;"></span><span style="font-size:12px;font-weight:600;flex:1;">${p.sigle}</span><span style="font-size:12px;font-weight:700;color:${p.couleur};">${pct}%</span></div>`;
+            }).join('')}
+          </div>`}
+      </div>
+    </div>
+    <div class="profile-section">
+      <div class="section-title">Par thématique</div>
+      <div class="profile-card">
+        ${['Écologie','Économie','Défense','Santé'].map(theme => {
+          const d = byTheme[theme]||{pour:0,contre:0,total:0};
+          const pct = d.total > 0 ? Math.round((d.pour/d.total)*100) : 0;
+          const color = {Écologie:'#16A34A',Économie:'#3B82F6',Défense:'#EF4444',Santé:'#F59E0B'}[theme];
+          const icon = {Écologie:'🌿',Économie:'💰',Défense:'🛡️',Santé:'❤️'}[theme];
+          return `<div class="progress-bar-wrap"><div class="progress-bar-label"><span>${icon} ${theme}</span><span style="color:${color};">${d.total} vote${d.total>1?'s':''} · ${pct}% pour</span></div><div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%;background:${color};"></div></div></div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="profile-section">
+      <div class="section-title">Mon score</div>
+      <div class="badge-grid">
+        ${renderBadge('🔰','Débutant','1er vote !',swipeCount>=1)}
+        ${renderBadge('🧐','Curieux','5+ votes',swipeCount>=5)}
+        ${renderBadge('🔥','Swipeur fou','10+ votes',swipeCount>=10)}
+        ${renderBadge('⭐️','Ambassadeur','Tous les votes',swipeCount>=state.propositions.length)}
+        ${renderBadge('❤️','Fan','3+ favoris',state.favorites.length>=3)}
+        ${renderBadge('🏆','Expert','Profil complet',swipeCount>=8&&state.favorites.length>=2)}
+      </div>
+    </div>
+    <div class="profile-section">
+      <div style="background:linear-gradient(135deg,var(--navy),#1E1B4B);border-radius:16px;padding:20px;color:#fff;text-align:center;">
+        <div style="font-size:24px;margin-bottom:8px;">💡</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;margin-bottom:6px;">Poli'Tips</div>
+        <div style="opacity:.7;font-size:12px;margin-bottom:14px;">Rendre la politique accessible et engagée pour tous</div>
+        <div style="opacity:.6;font-size:11px;line-height:1.8;">Un projet de <strong>Mylène HEUDELOT</strong> & <strong>Inès BOILEAU</strong><br>✉️ politips.contact@gmail.com · 📸 @PoliTips___</div>
+      </div>
+    </div>`;
+
+  if (swipeCount > 0) setTimeout(() => drawAffinityChart(affinity), 100);
+}
+
+function renderBadge(emoji, name, desc, unlocked) {
+  return `<div class="badge-item ${unlocked?'unlocked':''}"><span class="badge-emoji" style="filter:${unlocked?'none':'grayscale(1)'};">${emoji}</span><div class="badge-name" style="color:${unlocked?'var(--text-main)':'var(--text-muted)'};">${name}</div><div class="badge-desc">${desc}</div></div>`;
+}
+
+function computeAffinity() {
+  const scores = {}; state.partis.forEach(p => scores[p.id] = 0);
+  state.swipes.forEach(sw => {
+    const prop = state.propositions.find(p=>p.id===sw.prop_id);
+    if (!prop || sw.choix==='neutre') return;
+    const userVote = sw.choix==='pour' ? 1 : -1;
+    Object.entries(prop.orientation_partis).forEach(([parti, partiPos]) => {
+      if (userVote===partiPos) scores[parti]=(scores[parti]||0)+2;
+      else if (partiPos===0) scores[parti]=(scores[parti]||0)+0.5;
+      else scores[parti]=Math.max(0,(scores[parti]||0)-1);
+    });
+  });
+  Object.keys(scores).forEach(k => { if (scores[k]<0) scores[k]=0; });
+  const total = Object.values(scores).reduce((a,b)=>a+b,0);
+  if (total===0) Object.keys(scores).forEach(k=>scores[k]=1);
+  return scores;
+}
+
+function computeThemeBreakdown() {
+  const breakdown = {};
+  ['Écologie','Économie','Défense','Santé'].forEach(t=>breakdown[t]={pour:0,contre:0,total:0});
+  state.swipes.forEach(sw => {
+    const prop = state.propositions.find(p=>p.id===sw.prop_id);
+    if (!prop||!breakdown[prop.categorie]) return;
+    breakdown[prop.categorie].total++;
+    if (sw.choix==='pour') breakdown[prop.categorie].pour++;
+    else if (sw.choix==='contre') breakdown[prop.categorie].contre++;
+  });
+  return breakdown;
+}
+
+function drawAffinityChart(affinity) {
+  const ctx = document.getElementById('affinity-chart');
+  if (!ctx) return;
+  if (state.profileChart) state.profileChart.destroy();
+  state.profileChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: state.partis.map(p=>p.sigle), datasets: [{ data: state.partis.map(p=>affinity[p.id]||0), backgroundColor: state.partis.map(p=>p.couleur), borderWidth: 2, borderColor: '#fff' }] },
+    options: { cutout:'65%', responsive:true, maintainAspectRatio:true, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.label}: ${Math.round((ctx.raw/ctx.dataset.data.reduce((a,b)=>a+b,0))*100)}%` } } }, animation:{animateRotate:true,duration:800} }
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  BACKOFFICE
+// ══════════════════════════════════════════════════════
+
+function openBackoffice() {
+  document.getElementById('backoffice').classList.add('open');
+  renderBOStats();
+  renderBOPropositions();
+  renderRSSSources();
+}
+
+function closeBackoffice() { document.getElementById('backoffice').classList.remove('open'); }
+
+function switchBOTab(tab) {
+  document.querySelectorAll('.bo-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.bo-section').forEach(s=>s.classList.remove('active'));
+  const tabs = ['stats','rss','propositions','actualites'];
+  const idx = tabs.indexOf(tab);
+  document.querySelectorAll('.bo-tab')[idx].classList.add('active');
+  document.getElementById('bo-'+tab).classList.add('active');
+  if (tab==='rss') renderRSSSources();
+}
+
+function renderBOStats() {
+  const total = state.swipes.length;
+  const pourCount = state.swipes.filter(s=>s.choix==='pour').length;
+  const contreCount = state.swipes.filter(s=>s.choix==='contre').length;
+  const neutreCount = state.swipes.filter(s=>s.choix==='neutre').length;
+  const propStats = state.propositions.map(p => {
+    const sw = state.swipes.filter(s=>s.prop_id===p.id);
+    const pct = sw.length>0 ? Math.round((sw.filter(s=>s.choix==='pour').length/sw.length)*100) : 0;
+    return {p, sw:sw.length, pct};
+  }).sort((a,b)=>b.sw-a.sw);
+  document.getElementById('bo-stats-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+      <div style="background:var(--bg2);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:20px;font-weight:800;color:var(--green-vote);">${pourCount}</div><div style="font-size:11px;color:var(--text-muted);">Pour</div></div>
+      <div style="background:var(--bg2);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:20px;font-weight:800;color:var(--coral);">${contreCount}</div><div style="font-size:11px;color:var(--text-muted);">Contre</div></div>
+      <div style="background:var(--bg2);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:20px;font-weight:800;color:var(--text-muted);">${neutreCount}</div><div style="font-size:11px;color:var(--text-muted);">Neutres</div></div>
+    </div>
+    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:16px;display:flex;justify-content:space-between;">
+      <div style="text-align:center;"><div style="font-size:18px;font-weight:800;">${state.articles.length}</div><div style="font-size:11px;color:var(--text-muted);">Articles RSS</div></div>
+      <div style="text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--coral);">${state.articles.filter(a=>a.is_new).length}</div><div style="font-size:11px;color:var(--text-muted);">Nouveaux</div></div>
+      <div style="text-align:center;"><div style="font-size:18px;font-weight:800;">${RSS_SOURCES.filter(s=>s.actif).length}</div><div style="font-size:11px;color:var(--text-muted);">Sources actives</div></div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Propositions les + votées</div>
+    ${propStats.slice(0,6).map(s=>`<div class="stat-row"><span style="font-size:12px;flex:1;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.p.intitule.slice(0,42)}…</span><div class="stat-bar"><div class="stat-bar-fill" style="width:${s.pct}%;"></div></div><span style="font-size:11px;font-weight:700;color:var(--navy);min-width:36px;text-align:right;">${s.pct}%</span></div>`).join('')}
+    <div style="margin-top:12px;font-size:12px;color:var(--text-muted);">Total : <strong>${total}</strong> vote(s) · session locale</div>`;
+}
+
+function renderBOPropositions() {
+  document.getElementById('bo-prop-list').innerHTML = state.propositions.slice(0,5).map(p=>`<div style="background:var(--bg2);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center;"><span style="flex:1;">${p.intitule.slice(0,48)}…</span><span style="margin-left:8px;color:var(--text-muted);">${p.categorie}</span></div>`).join('')+`<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${state.propositions.length} proposition(s) au total</div>`;
+}
+
+function addProposition() {
+  const text = document.getElementById('bo-prop-text').value.trim();
+  const cat = document.getElementById('bo-prop-cat').value;
+  const ctx = document.getElementById('bo-prop-ctx').value.trim();
+  if (!text) { showToast('⚠️ Texte requis'); return; }
+  state.propositions.push({ id:Date.now(), intitule:text, categorie:cat, contexte:ctx||'Proposition ajoutée en backoffice.', orientation_partis:{rn:0,lr:0,renaissance:0,ps:0,lfi:0,eelv:0} });
+  document.getElementById('bo-prop-text').value = '';
+  document.getElementById('bo-prop-ctx').value = '';
+  showToast('✅ Proposition ajoutée !');
+  renderBOPropositions(); renderCardStack();
+}
+
+function addActualite() {
+  const titre = document.getElementById('bo-news-title').value.trim();
+  const contenu = document.getElementById('bo-news-content').value.trim();
+  const parti = document.getElementById('bo-news-parti').value || null;
+  const tagsRaw = document.getElementById('bo-news-tags').value;
+  const tags = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
+  if (!titre) { showToast('⚠️ Titre requis'); return; }
+  state.articles.unshift({ id:Date.now(), titre, summary:contenu||'—', corps:'', parti_id:parti, source:'Backoffice', source_type:'manual', date:new Date().toISOString().split('T')[0], tags, is_new:true });
+  document.getElementById('bo-news-title').value = '';
+  document.getElementById('bo-news-content').value = '';
+  document.getElementById('bo-news-tags').value = '';
+  showToast('✅ Actualité publiée !');
+  renderNews();
+  document.getElementById('nav-dot-news').classList.add('show');
+  setTimeout(()=>document.getElementById('nav-dot-news').classList.remove('show'), 4000);
+}
+
+function resetDemo() {
+  if (!confirm('Réinitialiser tous les votes et les articles RSS pour la démo ?')) return;
+  state.swipes = []; state.currentCardIndex = 0; state.articles = [...RSS_ARTICLES_BASE];
+  localStorage.setItem('politips_swipes','[]');
+  if (state.profileChart) { state.profileChart.destroy(); state.profileChart = null; }
+  renderCardStack(); renderProfile(); renderNews();
+  showToast('🔄 Démo réinitialisée !');
+}
+
+// ══════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+// ══════════════════════════════════════════════════════
+//  SERVICE WORKER
+// ══════════════════════════════════════════════════════
+
+if ('serviceWorker' in navigator) {
+  const swCode = `const CACHE='politips-v2';self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','/index.html']))));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));`;
+  const swBlob = new Blob([swCode], {type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+}
+</script>
+</body>
+</html>
